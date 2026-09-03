@@ -27,27 +27,26 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
   const [isFav, setIsFav] = useState(false);
   const [qty, setQty] = useState(1);
 
+  // Multipliers & Available stock per presentation
+  const cajaSize = product.contenidoCaja || 24;
+  const blisterSize = product.contenidoBlister || 6;
+  const cajaStock = Math.floor(product.stock / cajaSize);
+  const blisterStock = Math.floor(product.stock / blisterSize);
+  const unidadStock = product.stock;
+
   // 🔹 Fractionated Inventory Presentations ('CAJA' | 'BLISTER' | 'UNIDAD')
+  // Automatically selects the highest available presentation with stock >= 1
   const [selectedPres, setSelectedPres] = useState<ProductPresentationType>(() => {
     if (product.manejaFracciones) {
-      if (product.precioCaja && product.stock >= (product.contenidoCaja || 24)) return 'CAJA';
-      if (product.precioBlister && product.stock >= (product.contenidoBlister || 6)) return 'BLISTER';
-      if (product.precioUnidad) return 'UNIDAD';
+      if (product.precioCaja && cajaStock >= 1) return 'CAJA';
+      if (product.precioBlister && blisterStock >= 1) return 'BLISTER';
+      if (product.precioUnidad && unidadStock >= 1) return 'UNIDAD';
       return 'CAJA';
     }
     return 'REGULAR';
   });
 
   const categoryName = categories.find(c => c.id === product.categoriaId)?.nombre || 'PRODUCTO';
-
-  // Multipliers
-  const cajaSize = product.contenidoCaja || 24;
-  const blisterSize = product.contenidoBlister || 6;
-
-  // Available stock per presentation
-  const cajaStock = Math.floor(product.stock / cajaSize);
-  const blisterStock = Math.floor(product.stock / blisterSize);
-  const unidadStock = product.stock;
 
   // Current active unit price and presentation label
   const { activePrice, activeLabel, maxAvailable, unidadesPorItem } = useMemo(() => {
@@ -86,9 +85,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
     };
   }, [product, selectedPres, cajaSize, blisterSize, cajaStock, blisterStock, unidadStock]);
 
-  const isOutOfStock = product.stock <= 0 || (product.manejaFracciones && maxAvailable <= 0);
+  const isProductOutOfStock = product.stock <= 0;
+  const isSelectionOutOfStock = isProductOutOfStock || maxAvailable <= 0;
 
-  if (product.stock <= 0 && !store.visibilidadStock.mostrarAgotados) {
+  if (isProductOutOfStock && !store.visibilidadStock.mostrarAgotados) {
     return null;
   }
 
@@ -120,7 +120,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
           >
             {categoryName}
           </span>
-          {isOutOfStock ? (
+          {isProductOutOfStock ? (
             <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded-md border border-rose-200 dark:border-rose-900">
               Agotado
             </span>
@@ -337,16 +337,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
         <button
           type="button"
           onClick={handleAdd}
-          disabled={isOutOfStock}
-          style={!isOutOfStock ? { backgroundColor: accent } : {}}
+          disabled={isSelectionOutOfStock}
+          style={!isSelectionOutOfStock ? { backgroundColor: accent } : {}}
           className={`flex-1 py-2 px-2.5 rounded-lg text-xs font-black flex items-center justify-center gap-1 transition cursor-pointer ${
-            isOutOfStock
+            isSelectionOutOfStock
               ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
               : 'text-white shadow-md hover:brightness-110 active:scale-95'
           }`}
         >
           <ShoppingBag className="w-3.5 h-3.5" />
-          <span>Agregar ({formatCOP(activePrice * qty)})</span>
+          <span>
+            {isSelectionOutOfStock 
+              ? (isProductOutOfStock ? 'Agotado' : 'Agotado en esta opción')
+              : `Agregar (${formatCOP(activePrice * qty)})`}
+          </span>
         </button>
 
         {/* Heart */}

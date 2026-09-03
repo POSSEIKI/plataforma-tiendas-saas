@@ -45,11 +45,20 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const [isFavorite, setIsFavorite] = useState(false);
   const [addedToast, setAddedToast] = useState(false);
 
+  // Multipliers
+  const cajaSize = product?.contenidoCaja || 24;
+  const blisterSize = product?.contenidoBlister || 6;
+
+  // Stock per presentation
+  const cajaStock = product ? Math.floor(product.stock / cajaSize) : 0;
+  const blisterStock = product ? Math.floor(product.stock / blisterSize) : 0;
+  const unidadStock = product ? product.stock : 0;
+
   const [selectedPres, setSelectedPres] = useState<ProductPresentationType>(() => {
     if (product?.manejaFracciones) {
-      if (product.precioCaja && product.stock >= (product.contenidoCaja || 24)) return 'CAJA';
-      if (product.precioBlister && product.stock >= (product.contenidoBlister || 6)) return 'BLISTER';
-      if (product.precioUnidad) return 'UNIDAD';
+      if (product.precioCaja && cajaStock >= 1) return 'CAJA';
+      if (product.precioBlister && blisterStock >= 1) return 'BLISTER';
+      if (product.precioUnidad && unidadStock >= 1) return 'UNIDAD';
       return 'CAJA';
     }
     return 'REGULAR';
@@ -60,15 +69,6 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const isZenTemplate = store.plantilla === 'zen';
   const categoryName = categories.find(c => c.id === product.categoriaId)?.nombre || 'PRODUCTO';
   const accent = isZenTemplate ? '#c67139' : (store.temaColor || '#059669');
-
-  // Multipliers
-  const cajaSize = product.contenidoCaja || 24;
-  const blisterSize = product.contenidoBlister || 6;
-
-  // Stock per presentation
-  const cajaStock = Math.floor(product.stock / cajaSize);
-  const blisterStock = Math.floor(product.stock / blisterSize);
-  const unidadStock = product.stock;
 
   // Active price, label, and availability
   const { activePrice, activeLabel, maxAvailable, unidadesPorItem, activeBarcode } = useMemo(() => {
@@ -111,7 +111,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     };
   }, [product, selectedPres, cajaSize, blisterSize, cajaStock, blisterStock, unidadStock]);
 
-  const isOutOfStock = product.stock <= 0 || (product.manejaFracciones && maxAvailable <= 0);
+  const isProductOutOfStock = product.stock <= 0;
+  const isSelectionOutOfStock = isProductOutOfStock || maxAvailable <= 0;
 
   const handleAdd = () => {
     onAddToCart(product, quantity, {
@@ -417,12 +418,16 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           <button
             type="button"
             onClick={handleAdd}
-            disabled={isOutOfStock}
-            style={!isOutOfStock ? { backgroundColor: accent } : {}}
+            disabled={isSelectionOutOfStock}
+            style={!isSelectionOutOfStock ? { backgroundColor: accent } : {}}
             className="flex-1 py-3 px-4 text-white font-extrabold rounded-xl text-xs sm:text-sm shadow-lg flex items-center justify-center gap-2 hover:brightness-110 active:scale-98 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             <ShoppingBag className="w-4 h-4" />
-            <span>Añadir al Pedido · {formatCOP(activePrice * quantity)}</span>
+            <span>
+              {isSelectionOutOfStock 
+                ? (isProductOutOfStock ? 'Agotado' : 'Agotado en esta opción')
+                : `Añadir al Pedido · ${formatCOP(activePrice * quantity)}`}
+            </span>
           </button>
 
           {/* Favorite Button */}
