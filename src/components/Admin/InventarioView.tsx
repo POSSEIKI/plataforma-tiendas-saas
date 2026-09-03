@@ -845,7 +845,7 @@ export const InventarioView: React.FC = () => {
               <select
                 value={stockFilter}
                 onChange={e => setStockFilter(e.target.value as any)}
-                className="flex-1 sm:flex-initial px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none shadow-xs cursor-pointer"
+                className="flex-1 sm:flex-initial px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none shadow-xs cursor-pointer"
                 title="Filtrar por existencias"
               >
                 <option value="todos">📦 Todo el Stock ({products.length})</option>
@@ -853,28 +853,11 @@ export const InventarioView: React.FC = () => {
                 <option value="sin_stock">🔴 Sin Stock / Agotados ({sinStockCount})</option>
               </select>
 
-              {/* Dropdown 2: Categoría */}
-              {categories.length > 0 && (
-                <select
-                  value={categoryFilter}
-                  onChange={e => setCategoryFilter(e.target.value)}
-                  className="flex-1 sm:flex-initial px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none shadow-xs cursor-pointer max-w-[180px] truncate"
-                  title="Filtrar por categoría"
-                >
-                  <option value="todas">📁 Categorías (Todas)</option>
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.id}>
-                      📁 {cat.nombre} ({products.filter(p => p.categoriaId === cat.id).length})
-                    </option>
-                  ))}
-                </select>
-              )}
-
-              {/* Dropdown 3: Ordenar */}
+              {/* Dropdown 2: Ordenar */}
               <select
                 value={sortBy}
                 onChange={e => setSortBy(e.target.value as any)}
-                className="flex-1 sm:flex-initial px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none shadow-xs cursor-pointer"
+                className="flex-1 sm:flex-initial px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none shadow-xs cursor-pointer"
                 title="Ordenar productos"
               >
                 <option value="defecto">↕️ Orden Normal</option>
