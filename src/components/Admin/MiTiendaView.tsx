@@ -90,8 +90,10 @@ export const MiTiendaView: React.FC = () => {
     reader.onloadend = () => {
       const base64 = reader.result as string;
       setFormData(prev => ({ ...prev, logoUrl: base64 }));
-      setGeocodeMessage('✓ Logo PNG cargado correctamente.');
-      setTimeout(() => setGeocodeMessage(null), 3000);
+      // Persist to store and localStorage immediately
+      updateStore({ logoUrl: base64 });
+      setGeocodeMessage('✓ Logo PNG cargado y guardado con éxito en tu tienda.');
+      setTimeout(() => setGeocodeMessage(null), 3500);
     };
     reader.readAsDataURL(file);
   };
@@ -333,8 +335,11 @@ export const MiTiendaView: React.FC = () => {
                   {formData.logoUrl && (
                     <button
                       type="button"
-                      onClick={() => setFormData({ ...formData, logoUrl: '' })}
-                      className="text-xs font-bold text-rose-600 hover:text-rose-700 flex items-center gap-1 self-start sm:self-auto"
+                      onClick={() => {
+                        setFormData({ ...formData, logoUrl: '' });
+                        updateStore({ logoUrl: '' });
+                      }}
+                      className="text-xs font-bold text-rose-600 hover:text-rose-700 flex items-center gap-1 self-start sm:self-auto cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       <span>Quitar Logo</span>
