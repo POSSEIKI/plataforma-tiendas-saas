@@ -52,13 +52,15 @@ export const StoreQRSection: React.FC = () => {
     { label: 'Violeta / Boutique', value: '#7c3aed', bg: 'bg-purple-600' },
   ];
 
-  // Generate QR Code on canvas
+  // Generate QR Code on canvas reliably
   useEffect(() => {
-    const generateQR = async () => {
-      if (!canvasRef.current) return;
+    let isCancelled = false;
 
-      const canvas = canvasRef.current;
+    const generateQR = async () => {
       const size = 600; // High-res canvas for crisp scanning
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
 
       try {
         await QRCode.toCanvas(canvas, publicUrl, {
@@ -71,28 +73,32 @@ export const StoreQRSection: React.FC = () => {
           errorCorrectionLevel: 'H', // High error correction level (allows logo overlay)
         });
 
-        // Overlay store logo in the center if requested and available
-        if (includeLogo && store.logoUrl) {
+        const hasValidLogo = Boolean(store.logoUrl && store.logoUrl.trim().length > 0);
+
+        // Overlay store logo in the center ONLY IF store.logoUrl is present and includeLogo is true
+        if (includeLogo && hasValidLogo) {
           const ctx = canvas.getContext('2d');
           if (ctx) {
             const logoImg = new Image();
-            logoImg.crossOrigin = 'anonymous';
+            if (!store.logoUrl.startsWith('data:')) {
+              logoImg.crossOrigin = 'anonymous';
+            }
             logoImg.onload = () => {
+              if (isCancelled) return;
               const center = size / 2;
-              const logoBoxSize = size * 0.24; // 24% of QR code size
-              const padding = 6;
+              const logoBoxSize = size * 0.22; // 22% of QR code size
+              const padding = 8;
               const halfBox = logoBoxSize / 2;
 
-              // White background with rounded corners for logo contrast
+              // White background with smooth rounded corners for logo contrast
               ctx.save();
               ctx.fillStyle = '#ffffff';
-              ctx.shadowColor = 'rgba(0, 0, 0, 0.18)';
-              ctx.shadowBlur = 12;
+              ctx.shadowColor = 'rgba(0, 0, 0, 0.22)';
+              ctx.shadowBlur = 14;
               ctx.shadowOffsetX = 0;
-              ctx.shadowOffsetY = 3;
+              ctx.shadowOffsetY = 4;
 
-              // Rounded rectangle path for logo badge
-              const radius = 14;
+              const radius = 16;
               ctx.beginPath();
               ctx.moveTo(center - halfBox - padding + radius, center - halfBox - padding);
               ctx.lineTo(center + halfBox + padding - radius, center - halfBox - padding);
@@ -108,11 +114,26 @@ export const StoreQRSection: React.FC = () => {
               ctx.restore();
 
               // Draw subtle inner border
-              ctx.strokeStyle = '#e2e8f0';
-              ctx.lineWidth = 2;
+              ctx.strokeStyle = '#cbd5e1';
+              ctx.lineWidth = 2.5;
               ctx.stroke();
 
-              // Draw image centered and scaled
+              // Draw image centered and scaled with clipped inner rounded box
+              ctx.save();
+              ctx.beginPath();
+              const innerRadius = 12;
+              ctx.moveTo(center - halfBox + innerRadius, center - halfBox);
+              ctx.lineTo(center + halfBox - innerRadius, center - halfBox);
+              ctx.quadraticCurveTo(center + halfBox, center - halfBox, center + halfBox, center - halfBox + innerRadius);
+              ctx.lineTo(center + halfBox, center + halfBox - innerRadius);
+              ctx.quadraticCurveTo(center + halfBox, center + halfBox, center + halfBox - innerRadius, center + halfBox);
+              ctx.lineTo(center - halfBox + innerRadius, center + halfBox);
+              ctx.quadraticCurveTo(center - halfBox, center + halfBox, center - halfBox, center + halfBox - innerRadius);
+              ctx.lineTo(center - halfBox, center - halfBox + innerRadius);
+              ctx.quadraticCurveTo(center - halfBox, center - halfBox, center - halfBox + innerRadius, center - halfBox);
+              ctx.closePath();
+              ctx.clip();
+
               ctx.drawImage(
                 logoImg,
                 center - halfBox,
@@ -120,17 +141,23 @@ export const StoreQRSection: React.FC = () => {
                 logoBoxSize,
                 logoBoxSize
               );
+              ctx.restore();
 
               // Update data URL
               setQrDataUrl(canvas.toDataURL('image/png'));
             };
             logoImg.onerror = () => {
+              if (isCancelled) return;
+              // Fallback to clean QR without logo
               setQrDataUrl(canvas.toDataURL('image/png'));
             };
             logoImg.src = store.logoUrl;
           }
         } else {
-          setQrDataUrl(canvas.toDataURL('image/png'));
+          // No logo requested or no logoUrl: clean QR
+          if (!isCancelled) {
+            setQrDataUrl(canvas.toDataURL('image/png'));
+          }
         }
       } catch (err) {
         console.error('Error generating QR Code:', err);
@@ -138,6 +165,10 @@ export const StoreQRSection: React.FC = () => {
     };
 
     generateQR();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [publicUrl, qrColor, includeLogo, store.logoUrl]);
 
   // Copy Store URL
@@ -342,7 +373,7 @@ export const StoreQRSection: React.FC = () => {
             </div>
 
             {/* Logo in Center Switch */}
-            {store.logoUrl && (
+            {store.logoUrl ? (
               <div className="flex items-center justify-between pt-2 border-t border-slate-200/80 dark:border-slate-700">
                 <div className="flex items-center gap-2">
                   <ImageIcon className="w-4 h-4 text-emerald-600" />
@@ -357,6 +388,11 @@ export const StoreQRSection: React.FC = () => {
                   onChange={e => setIncludeLogo(e.target.checked)}
                   className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer"
                 />
+              </div>
+            ) : (
+              <div className="pt-2 border-t border-slate-200/80 dark:border-slate-700 text-[11px] text-slate-400 flex items-center gap-2">
+                <ImageIcon className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                <span>Sin logo cargado. El código QR se genera limpio en alta resolución. Si cargas el logo de tu negocio en "Información de mi negocio", se integrará automáticamente en el centro.</span>
               </div>
             )}
           </div>
