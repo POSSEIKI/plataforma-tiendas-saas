@@ -248,12 +248,12 @@ export const MiTiendaView: React.FC = () => {
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white flex items-center gap-1.5">
-                    <span>Información de mi negocio & Dirección de Despacho</span>
+                    <span>Información De Mi Negocio</span>
                     <span className="text-slate-400 font-normal">&gt;</span>
                   </h3>
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Nombre, WhatsApp, eslogan, logo PNG, horarios 24h, rubro comercial y ubicación física en mapa
+                  Nombre, WhatsApp, eslogan, logo PNG, horarios 24h, rubro comercial y enlace web
                 </p>
               </div>
             </div>
@@ -539,7 +539,7 @@ export const MiTiendaView: React.FC = () => {
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white flex items-center gap-1.5">
-                    <span>Nomenclatura Vial Oficial de Colombia & Ubicación GPS</span>
+                    <span>Dirección & Ubicación GPS</span>
                     <span className="text-slate-400 font-normal">&gt;</span>
                   </h3>
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 uppercase tracking-wider">
@@ -547,7 +547,7 @@ export const MiTiendaView: React.FC = () => {
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Ciudad de operación, radio de cobertura, buscador inteligente, vías oficiales colombianas y mapa satelital
+                  Ciudad de operación, radio de cobertura, buscador inteligente, vías oficiales y mapa satelital
                 </p>
               </div>
             </div>
