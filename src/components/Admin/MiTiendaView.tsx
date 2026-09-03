@@ -501,6 +501,66 @@ export const MiTiendaView: React.FC = () => {
                 )}
               </div>
 
+              {/* Short Description */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Descripción corta del negocio
+                </label>
+                <textarea
+                  rows={3}
+                  value={formData.descripcionCorta}
+                  onChange={e => setFormData({ ...formData, descripcionCorta: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  placeholder="Droguería y farmacia con servicio de domicilio express..."
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ======================================================== */}
+        {/* BLOQUE 3: NOMENCLATURA VIAL OFICIAL DE COLOMBIA (IGAC)   */}
+        {/* ======================================================== */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all">
+          {/* Collapsible Bar Header */}
+          <div
+            onClick={() => setIsNomenclaturaOpen(!isNomenclaturaOpen)}
+            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5 sm:p-6 cursor-pointer hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition select-none"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center flex-shrink-0 shadow-xs">
+                <MapPin className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <span>Nomenclatura Vial Oficial de Colombia & Ubicación GPS</span>
+                    <span className="text-slate-400 font-normal">&gt;</span>
+                  </h3>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 uppercase tracking-wider">
+                    Estandarizado IGAC
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Ciudad de operación, radio de cobertura, buscador inteligente, vías oficiales colombianas y mapa satelital
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-end sm:self-center">
+              <span className="text-xs font-bold text-slate-400 hidden sm:inline">
+                {isNomenclaturaOpen ? 'Ocultar' : 'Configurar Ubicación'}
+              </span>
+              <div className={`p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 transition-transform duration-200 ${isNomenclaturaOpen ? 'rotate-180' : ''}`}>
+                <ChevronDown className="w-4 h-4" />
+              </div>
+            </div>
+          </div>
+
+          {/* Collapsible Body */}
+          {isNomenclaturaOpen && (
+            <div className="p-5 sm:p-7 pt-4 sm:pt-4 border-t border-slate-100 dark:border-slate-800 space-y-6 animate-fadeIn">
+              
               {/* City Selector & Coverage */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
@@ -564,8 +624,35 @@ export const MiTiendaView: React.FC = () => {
                 />
               </div>
 
+              {/* FORMULARIO DE NOMENCLATURA VIAL OFICIAL */}
+              <div className="space-y-2">
+                <ColombianNomenclatureForm
+                  ciudad={formData.ciudad}
+                  viaTipo={formData.viaTipo}
+                  viaNumero={formData.viaNumero}
+                  viaLetra={formData.viaLetra}
+                  cruceTipo={formData.cruceTipo}
+                  cruceNumero={formData.cruceNumero}
+                  cruceLetra={formData.cruceLetra}
+                  placa={formData.placa}
+                  barrio={formData.barrio}
+                  complemento={formData.complemento}
+                  hideHeader={true}
+                  onChange={(fields) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      ...fields,
+                    }));
+                    if (fields.direccionCompleta) {
+                      setGeocodeMessage(`✓ Ubicado con precisión: ${fields.direccionCompleta}`);
+                      setTimeout(() => setGeocodeMessage(null), 4000);
+                    }
+                  }}
+                />
+              </div>
+
               {/* Interactive GPS Map Section */}
-              <div className="space-y-3">
+              <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
                 <div className="flex items-center justify-between">
                   <div>
                     <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
@@ -582,7 +669,7 @@ export const MiTiendaView: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleUseCurrentGPS}
-                    className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold flex items-center gap-1.5 transition border border-slate-200 dark:border-slate-700"
+                    className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold flex items-center gap-1.5 transition border border-slate-200 dark:border-slate-700 cursor-pointer"
                   >
                     <Navigation className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Usar mi GPS actual</span>
@@ -598,88 +685,6 @@ export const MiTiendaView: React.FC = () => {
                 />
               </div>
 
-              {/* Short Description */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Descripción corta del negocio
-                </label>
-                <textarea
-                  rows={3}
-                  value={formData.descripcionCorta}
-                  onChange={e => setFormData({ ...formData, descripcionCorta: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                  placeholder="Droguería y farmacia con servicio de domicilio express..."
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* ======================================================== */}
-        {/* BLOQUE 3: NOMENCLATURA VIAL OFICIAL DE COLOMBIA (IGAC)   */}
-        {/* ======================================================== */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all">
-          {/* Collapsible Bar Header */}
-          <div
-            onClick={() => setIsNomenclaturaOpen(!isNomenclaturaOpen)}
-            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5 sm:p-6 cursor-pointer hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition select-none"
-          >
-            <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center flex-shrink-0 shadow-xs">
-                <MapPin className="w-5 h-5 text-emerald-600" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white flex items-center gap-1.5">
-                    <span>Nomenclatura Vial Oficial de Colombia (IGAC)</span>
-                    <span className="text-slate-400 font-normal">&gt;</span>
-                  </h3>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 uppercase tracking-wider">
-                    Estandarizado
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Estructura oficial por Vía Principal (Calle/Carrera), Vía de Cruce, Letras Bis, Placa, Barrio y Complemento
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 self-end sm:self-center">
-              <span className="text-xs font-bold text-slate-400 hidden sm:inline">
-                {isNomenclaturaOpen ? 'Ocultar' : 'Configurar Vías'}
-              </span>
-              <div className={`p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 transition-transform duration-200 ${isNomenclaturaOpen ? 'rotate-180' : ''}`}>
-                <ChevronDown className="w-4 h-4" />
-              </div>
-            </div>
-          </div>
-
-          {/* Collapsible Body */}
-          {isNomenclaturaOpen && (
-            <div className="p-5 sm:p-7 pt-4 sm:pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4 animate-fadeIn">
-              <ColombianNomenclatureForm
-                ciudad={formData.ciudad}
-                viaTipo={formData.viaTipo}
-                viaNumero={formData.viaNumero}
-                viaLetra={formData.viaLetra}
-                cruceTipo={formData.cruceTipo}
-                cruceNumero={formData.cruceNumero}
-                cruceLetra={formData.cruceLetra}
-                placa={formData.placa}
-                barrio={formData.barrio}
-                complemento={formData.complemento}
-                hideHeader={true}
-                onChange={(fields) => {
-                  setFormData(prev => ({
-                    ...prev,
-                    ...fields,
-                  }));
-                  if (fields.direccionCompleta) {
-                    setGeocodeMessage(`✓ Ubicado con precisión: ${fields.direccionCompleta}`);
-                    setTimeout(() => setGeocodeMessage(null), 4000);
-                  }
-                }}
-              />
             </div>
           )}
         </div>
