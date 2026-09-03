@@ -281,8 +281,8 @@ export const MiTiendaView: React.FC = () => {
                     type="text"
                     value={formData.nombre}
                     onChange={e => setFormData({ ...formData, nombre: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none uppercase"
-                    placeholder="NOMBRE NEGOCIO"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    placeholder="Nombre del Negocio"
                     required
                   />
                 </div>

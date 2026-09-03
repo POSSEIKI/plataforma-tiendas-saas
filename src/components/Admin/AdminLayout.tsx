@@ -130,7 +130,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-sm sm:text-base font-extrabold tracking-tight text-slate-900 dark:text-white uppercase truncate max-w-[200px] sm:max-w-xs md:max-w-md">
+                <h1 className="text-sm sm:text-base font-extrabold tracking-tight text-slate-900 dark:text-white truncate max-w-[200px] sm:max-w-xs md:max-w-md">
                   {store.nombre}
                 </h1>
                 {/* Live Status Toggle */}

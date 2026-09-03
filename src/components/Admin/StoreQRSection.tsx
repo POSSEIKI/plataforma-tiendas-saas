@@ -289,7 +289,7 @@ export const StoreQRSection: React.FC = () => {
             )}
 
             <div className="mt-2 text-center">
-              <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+              <span className="text-[10px] font-black tracking-widest text-slate-400">
                 {store.nombre} · Escanea y Pide
               </span>
             </div>
@@ -476,7 +476,7 @@ export const StoreQRSection: React.FC = () => {
                     {store.nombre.slice(0, 2).toUpperCase()}
                   </div>
                 )}
-                <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 uppercase">
+                <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
                   {store.nombre}
                 </h1>
                 {store.slogan && (

@@ -344,7 +344,7 @@ export const StorefrontView: React.FC = () => {
               <div className="min-w-0">
                 <h1 
                   style={isZenTemplate ? { fontFamily: "'Caprasimo', serif" } : undefined}
-                  className={`text-sm sm:text-base font-black uppercase tracking-tight leading-none truncate ${
+                  className={`text-sm sm:text-base font-black tracking-tight leading-none truncate ${
                     isZenTemplate ? 'font-caprasimo font-normal normal-case tracking-wide text-base sm:text-xl text-[#201e1d] dark:text-[#f5ead8]' : 'text-slate-900 dark:text-white'
                   }`}
                 >
@@ -355,11 +355,11 @@ export const StorefrontView: React.FC = () => {
                     color: isZenTemplate ? '#c67139' : theme.accentColor,
                     fontFamily: isZenTemplate ? "'Figtree', sans-serif" : undefined 
                   }}
-                  className={`text-[10px] uppercase tracking-wider font-extrabold mt-0.5 truncate ${
+                  className={`text-[10px] tracking-wider font-extrabold mt-0.5 truncate ${
                     isZenTemplate ? 'font-figtree font-semibold normal-case tracking-normal text-xs text-[#c67139] dark:text-[#e28a52]' : ''
                   }`}
                 >
-                  {store.slogan || store.descripcionCorta || 'TIENDA ONLINE OFICIAL'}
+                  {store.slogan || store.descripcionCorta || 'Tienda Online Oficial'}
                 </p>
               </div>
             </div>
@@ -742,7 +742,7 @@ export const StorefrontView: React.FC = () => {
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>
-            <span className={`font-black uppercase ${isZenTemplate ? 'text-[#201e1d] dark:text-[#f5ead8]' : 'text-slate-950 dark:text-white'}`}>{store.nombre}</span>
+            <span className={`font-black ${isZenTemplate ? 'text-[#201e1d] dark:text-[#f5ead8]' : 'text-slate-950 dark:text-white'}`}>{store.nombre}</span>
             <span> · {store.direccion.direccionCompleta} · Despachos y Domicilios</span>
           </div>
           <div>
