@@ -219,44 +219,58 @@ export const CategoriasView: React.FC = () => {
         </div>
 
         {/* Global Bulk Toggles & Purge */}
-        {categories.length > 0 && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={() => toggleAllCategories(true)}
-              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition active:scale-95 cursor-pointer"
-              title="Habilitar todas las categorías para que sean visibles en la web"
-            >
-              <Eye className="w-3.5 h-3.5" />
-              <span>Habilitar Todas</span>
-            </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => {
+              if (categories.length === 0) {
+                alert('No hay categorías registradas actualmente.');
+                return;
+              }
+              toggleAllCategories(true);
+            }}
+            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition active:scale-95 cursor-pointer"
+            title="Habilitar todas las categorías para que sean visibles en la web"
+          >
+            <Eye className="w-3.5 h-3.5" />
+            <span>Habilitar Todas</span>
+          </button>
 
-            <button
-              type="button"
-              onClick={() => toggleAllCategories(false)}
-              className="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer border border-slate-300 dark:border-slate-700"
-              title="Deshabilitar todas las categorías (ocultar de la tienda web)"
-            >
-              <EyeOff className="w-3.5 h-3.5" />
-              <span>Deshabilitar Todas</span>
-            </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (categories.length === 0) {
+                alert('No hay categorías registradas actualmente.');
+                return;
+              }
+              toggleAllCategories(false);
+            }}
+            className="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer border border-slate-300 dark:border-slate-700"
+            title="Deshabilitar todas las categorías (ocultar de la tienda web)"
+          >
+            <EyeOff className="w-3.5 h-3.5" />
+            <span>Deshabilitar Todas</span>
+          </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                setPurgeError(null);
-                setPurgeSuccess(null);
-                setPurgePassword('');
-                setPurgeModalOpen(true);
-              }}
-              className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 font-bold rounded-xl text-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer border border-rose-200 dark:border-rose-800"
-              title="Eliminar todas las categorías con clave de Administrador"
-            >
-              <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-              <span>Vaciar Categorías</span>
-            </button>
-          </div>
-        )}
+          <button
+            type="button"
+            onClick={() => {
+              if (categories.length === 0) {
+                alert('No hay categorías registradas para vaciar.');
+                return;
+              }
+              setPurgeError(null);
+              setPurgeSuccess(null);
+              setPurgePassword('');
+              setPurgeModalOpen(true);
+            }}
+            className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 font-bold rounded-xl text-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer border border-rose-200 dark:border-rose-800"
+            title="Eliminar todas las categorías con clave de Administrador"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+            <span>Vaciar Categorías</span>
+          </button>
+        </div>
       </div>
 
       {/* KPI Stats Bar */}

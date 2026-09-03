@@ -836,21 +836,23 @@ export const InventarioView: React.FC = () => {
             <span>Importar Archivo Excel/POS</span>
           </button>
 
-          {products.length > 0 && (
-            <button
-              onClick={() => {
-                setPurgeError(null);
-                setPurgeSuccess(null);
-                setPurgePassword('');
-                setPurgeModalOpen(true);
-              }}
-              className="px-3.5 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/80 text-xs font-bold text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/50 flex items-center gap-1.5 transition shadow-sm cursor-pointer"
-              title="Eliminar todos los productos con clave de Administrador"
-            >
-              <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-              <span>Vaciar Inventario</span>
-            </button>
-          )}
+          <button
+            onClick={() => {
+              if (products.length === 0) {
+                alert('El inventario ya se encuentra completamente vacío (0 productos).');
+                return;
+              }
+              setPurgeError(null);
+              setPurgeSuccess(null);
+              setPurgePassword('');
+              setPurgeModalOpen(true);
+            }}
+            className="px-3.5 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/80 text-xs font-bold text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/50 flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+            title="Eliminar todos los productos con clave de Administrador"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+            <span>Vaciar Inventario</span>
+          </button>
         </div>
 
         <button
