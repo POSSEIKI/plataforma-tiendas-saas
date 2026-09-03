@@ -8,11 +8,22 @@ export interface ParsedInventoryItem {
   marca: string;
   categoria: string;
   presentacion: string;
+  principio_activo?: string;
   precio: number;
   existencia_total: number;
   tiene_inventario: boolean;
   imagenUrl?: string;
   descripcion?: string;
+  // 🔹 Fractionated & Multi-Stock Columns
+  maneja_fracciones?: boolean;
+  stock_caja?: number;
+  stock_blister?: number;
+  stock_unidad?: number;
+  contenido_caja?: number;
+  contenido_blister?: number;
+  precio_caja?: number;
+  precio_blister?: number;
+  precio_unidad?: number;
 }
 
 export interface ColumnMapping {
@@ -21,8 +32,20 @@ export interface ColumnMapping {
   colMarca: number;
   colCategoria: number;
   colPresentacion: number;
+  colPrincipioActivo: number;
   colPrecio: number;
   colStock: number;
+  // 🔹 Multi-stock columns (Caja, Blíster, Unidad)
+  colStockCaja: number;
+  colStockBlister: number;
+  colStockUnidad: number;
+  // 🔹 Multi-content multipliers
+  colContenidoCaja: number;
+  colContenidoBlister: number;
+  // 🔹 Multi-price columns
+  colPrecioCaja: number;
+  colPrecioBlister: number;
+  colPrecioUnidad: number;
   colImagen: number;
 }
 
@@ -272,7 +295,7 @@ export class ExcelReader {
 
     const headers: string[] = (rawRows[headerRowIndex] || []).map((h: any) => String(h || '').trim());
 
-    // 1. Column for Name (Avoid 'tipo', 'tipo_producto', 'tipo_item')
+    // 1. Column for Name
     let colNombre = this.findBestColumn(
       headers, 
       rawRows, 
@@ -293,7 +316,15 @@ export class ExcelReader {
       ['codigo_barras', 'cod_barras', 'ean', 'barcode', 'codbar', 'plu', 'sku', 'codigo_producto', 'cod_art', 'codigo', 'cod', 'referencia', 'ref']
     );
 
-    // 3. Column for Price
+    // 3. Column for Principle Active / Sustancia
+    let colPrincipioActivo = this.findBestColumn(
+      headers, 
+      rawRows, 
+      headerRowIndex,
+      ['principio_activo', 'sustancia', 'componente', 'generico', 'molecula', 'droga', 'principio', 'droga_farmaco']
+    );
+
+    // 4. Column for Base Price
     let colPrecio = this.findBestColumn(
       headers, 
       rawRows, 
@@ -301,7 +332,7 @@ export class ExcelReader {
       ['precio_venta', 'precio_1', 'precio1', 'pvp', 'precio_publico', 'precio_unitario', 'valor_unitario', 'p_venta', 'val_uni', 'precio', 'valor', 'price']
     );
 
-    // 4. Column for Stock / Quantity
+    // 5. Column for Stock / Quantity (General)
     let colStock = this.findBestColumn(
       headers, 
       rawRows, 
@@ -309,7 +340,66 @@ export class ExcelReader {
       ['existencia_total', 'existencia', 'saldo_actual', 'saldo', 'stock_actual', 'stock', 'cantidad', 'cant', 'unidades', 'inv', 'qty', 'sal_act', 'exist']
     );
 
-    // 5. Column for Category / Group
+    // 🔹 6. 3-Column Multi-Stock (Caja, Blíster, Unidad)
+    let colStockCaja = this.findBestColumn(
+      headers,
+      rawRows,
+      headerRowIndex,
+      ['stock_caja', 'existencia_caja', 'cant_caja', 'cajas_stock', 'saldo_caja', 'inv_caja', 'cajas']
+    );
+
+    let colStockBlister = this.findBestColumn(
+      headers,
+      rawRows,
+      headerRowIndex,
+      ['stock_blister', 'existencia_blister', 'cant_blister', 'blister_stock', 'saldo_blister', 'inv_blister', 'blister', 'blisters']
+    );
+
+    let colStockUnidad = this.findBestColumn(
+      headers,
+      rawRows,
+      headerRowIndex,
+      ['stock_unidad', 'existencia_unidad', 'cant_unidad', 'unidad_stock', 'saldo_unidad', 'inv_unidad', 'fraccion', 'fracciones', 'pastillas', 'sueltas']
+    );
+
+    // 🔹 7. Multi-Content Multipliers (x Caja, x Blíster)
+    let colContenidoCaja = this.findBestColumn(
+      headers,
+      rawRows,
+      headerRowIndex,
+      ['contenido_caja', 'unidades_caja', 'cant_x_caja', 'factor_caja', 'x_caja', 'unidades_por_caja', 'fraccion_caja']
+    );
+
+    let colContenidoBlister = this.findBestColumn(
+      headers,
+      rawRows,
+      headerRowIndex,
+      ['contenido_blister', 'unidades_blister', 'cant_x_blister', 'factor_blister', 'x_blister', 'unidades_por_blister', 'fraccion_blister']
+    );
+
+    // 🔹 8. Multi-Price Columns (Precio Caja, Precio Blíster, Precio Unidad)
+    let colPrecioCaja = this.findBestColumn(
+      headers,
+      rawRows,
+      headerRowIndex,
+      ['precio_caja', 'valor_caja', 'pvp_caja', 'precio_cajas', 'precio1']
+    );
+
+    let colPrecioBlister = this.findBestColumn(
+      headers,
+      rawRows,
+      headerRowIndex,
+      ['precio_blister', 'valor_blister', 'pvp_blister', 'precio_blisters', 'precio2']
+    );
+
+    let colPrecioUnidad = this.findBestColumn(
+      headers,
+      rawRows,
+      headerRowIndex,
+      ['precio_unidad', 'valor_unidad', 'precio_fraccion', 'pvp_unidad', 'precio_pastilla', 'precio3']
+    );
+
+    // 9. Column for Category / Group
     let colCategoria = this.findBestColumn(
       headers, 
       rawRows, 
@@ -317,7 +407,7 @@ export class ExcelReader {
       ['categoria', 'nom_cat', 'grupo', 'nom_gru', 'linea', 'nom_lin', 'subgrupo', 'familia', 'nom_fam', 'departamento', 'seccion', 'category']
     );
 
-    // 6. Column for Brand / Lab
+    // 10. Column for Brand / Lab
     let colMarca = this.findBestColumn(
       headers, 
       rawRows, 
@@ -325,7 +415,7 @@ export class ExcelReader {
       ['marca', 'nom_marca', 'laboratorio', 'nom_lab', 'fabricante', 'proveedor', 'brand']
     );
 
-    // 7. Column for Presentation / Unit
+    // 11. Column for Presentation / Unit
     let colPresentacion = this.findBestColumn(
       headers, 
       rawRows, 
@@ -333,7 +423,7 @@ export class ExcelReader {
       ['presentacion', 'unidad_medida', 'unidad', 'unimed', 'empaque', 'medida', 'envase', 'forma']
     );
 
-    // 8. Column for Image
+    // 12. Column for Image
     let colImagen = this.findBestColumn(
       headers, 
       rawRows, 
@@ -347,8 +437,17 @@ export class ExcelReader {
       colMarca,
       colCategoria,
       colPresentacion,
+      colPrincipioActivo,
       colPrecio,
       colStock,
+      colStockCaja,
+      colStockBlister,
+      colStockUnidad,
+      colContenidoCaja,
+      colContenidoBlister,
+      colPrecioCaja,
+      colPrecioBlister,
+      colPrecioUnidad,
       colImagen,
     };
 
@@ -394,12 +493,15 @@ export class ExcelReader {
       let rawCodigo = '';
       if (mapping.colCodigo !== -1 && row[mapping.colCodigo] !== undefined && row[mapping.colCodigo] !== '') {
         rawCodigo = String(row[mapping.colCodigo]).trim().replace(/['"]/g, '');
-      } else {
-        rawCodigo = ''; // Leave completely empty if not in file
       }
 
-      // Extract Brand
+      // Extract Brand / Lab
       const rawMarca = mapping.colMarca !== -1 && row[mapping.colMarca] ? String(row[mapping.colMarca]).trim() : '';
+
+      // Extract Principle Active / Sustancia
+      const rawPrincipio = mapping.colPrincipioActivo !== -1 && row[mapping.colPrincipioActivo] 
+        ? String(row[mapping.colPrincipioActivo]).trim() 
+        : '';
 
       // Extract Category
       let rawCat = mapping.colCategoria !== -1 && row[mapping.colCategoria] ? String(row[mapping.colCategoria]).trim() : '';
@@ -412,7 +514,7 @@ export class ExcelReader {
       let rawPres = mapping.colPresentacion !== -1 && row[mapping.colPresentacion] ? String(row[mapping.colPresentacion]).trim().toUpperCase() : 'UNIDAD';
       if (!rawPres) rawPres = 'UNIDAD';
 
-      // Extract Price
+      // Extract Base Price
       let priceVal = 0;
       if (mapping.colPrecio !== -1 && row[mapping.colPrecio] !== undefined) {
         priceVal = this.parseNumber(row[mapping.colPrecio]);
@@ -429,14 +531,57 @@ export class ExcelReader {
         }
       }
 
-      // Extract Stock
-      let stockVal = 0;
-      if (mapping.colStock !== -1 && row[mapping.colStock] !== undefined) {
-        stockVal = Math.round(this.parseNumber(row[mapping.colStock]));
-        if (stockVal < 0) stockVal = 0;
+      // 🔹 Fractionated Multipliers (Contenido Caja / Blíster)
+      let factorCaja = mapping.colContenidoCaja !== -1 && row[mapping.colContenidoCaja] !== undefined
+        ? Math.round(this.parseNumber(row[mapping.colContenidoCaja]))
+        : 24;
+      if (factorCaja <= 0) factorCaja = 24;
+
+      let factorBlister = mapping.colContenidoBlister !== -1 && row[mapping.colContenidoBlister] !== undefined
+        ? Math.round(this.parseNumber(row[mapping.colContenidoBlister]))
+        : 6;
+      if (factorBlister <= 0) factorBlister = 6;
+
+      // 🔹 3-Column Stock Calculation (Caja, Blíster, Unidad)
+      const hasStockCaja = mapping.colStockCaja !== -1 && row[mapping.colStockCaja] !== undefined;
+      const hasStockBlister = mapping.colStockBlister !== -1 && row[mapping.colStockBlister] !== undefined;
+      const hasStockUnidad = mapping.colStockUnidad !== -1 && row[mapping.colStockUnidad] !== undefined;
+
+      const numStockCaja = hasStockCaja ? this.parseNumber(row[mapping.colStockCaja]) : 0;
+      const numStockBlister = hasStockBlister ? this.parseNumber(row[mapping.colStockBlister]) : 0;
+      const numStockUnidad = hasStockUnidad ? this.parseNumber(row[mapping.colStockUnidad]) : 0;
+
+      let totalBaseStock = 0;
+      const hasMultiStockColumns = hasStockCaja || hasStockBlister || hasStockUnidad;
+
+      if (hasMultiStockColumns) {
+        // 🧮 Total Base Units = (Cajas * Unidades_por_Caja) + (Blisters * Unidades_por_Blister) + Unidades_Sueltas
+        totalBaseStock = Math.round((numStockCaja * factorCaja) + (numStockBlister * factorBlister) + numStockUnidad);
+        if (totalBaseStock < 0) totalBaseStock = 0;
+      } else if (mapping.colStock !== -1 && row[mapping.colStock] !== undefined) {
+        totalBaseStock = Math.round(this.parseNumber(row[mapping.colStock]));
+        if (totalBaseStock < 0) totalBaseStock = 0;
       } else {
-        stockVal = 10;
+        totalBaseStock = 10;
       }
+
+      // 🔹 Fractionated Prices
+      const priceCaja = mapping.colPrecioCaja !== -1 && row[mapping.colPrecioCaja] !== undefined
+        ? this.parseNumber(row[mapping.colPrecioCaja])
+        : priceVal;
+
+      const priceBlister = mapping.colPrecioBlister !== -1 && row[mapping.colPrecioBlister] !== undefined
+        ? this.parseNumber(row[mapping.colPrecioBlister])
+        : (priceVal > 0 ? Math.round(priceVal / 4) : undefined);
+
+      const priceUnidad = mapping.colPrecioUnidad !== -1 && row[mapping.colPrecioUnidad] !== undefined
+        ? this.parseNumber(row[mapping.colPrecioUnidad])
+        : (priceVal > 0 ? Math.round(priceVal / factorCaja) : undefined);
+
+      // Determine if fractionated
+      const isFraccionado = hasMultiStockColumns || 
+        (mapping.colPrecioBlister !== -1 && row[mapping.colPrecioBlister] !== undefined) ||
+        (mapping.colPrecioUnidad !== -1 && row[mapping.colPrecioUnidad] !== undefined);
 
       // Extract Image
       const rawImg = mapping.colImagen !== -1 && row[mapping.colImagen] && String(row[mapping.colImagen]).startsWith('http')
@@ -450,11 +595,21 @@ export class ExcelReader {
         marca: rawMarca,
         categoria: rawCat.toUpperCase(),
         presentacion: rawPres,
+        principio_activo: rawPrincipio || undefined,
         precio: priceVal,
-        existencia_total: stockVal,
-        tiene_inventario: stockVal > 0,
+        existencia_total: totalBaseStock,
+        tiene_inventario: totalBaseStock > 0,
         imagenUrl: rawImg,
         descripcion: rawMarca ? `Marca / Laboratorio: ${rawMarca}` : undefined,
+        maneja_fracciones: isFraccionado,
+        stock_caja: hasStockCaja ? numStockCaja : undefined,
+        stock_blister: hasStockBlister ? numStockBlister : undefined,
+        stock_unidad: hasStockUnidad ? numStockUnidad : undefined,
+        contenido_caja: factorCaja,
+        contenido_blister: factorBlister,
+        precio_caja: priceCaja || priceVal,
+        precio_blister: priceBlister,
+        precio_unidad: priceUnidad,
       };
 
       productos.push(item);
@@ -490,6 +645,8 @@ export class ExcelReader {
       id: 'prod-imp-' + (Date.now() + idx),
       nombre: item.nombre,
       descripcion: item.descripcion,
+      principioActivo: item.principio_activo,
+      laboratorio: item.marca || undefined,
       precio: item.precio,
       stock: item.existencia_total,
       codigoBarras: item.codigo_barras,
@@ -497,6 +654,13 @@ export class ExcelReader {
       presentacion: item.presentacion,
       imagenUrl: item.imagenUrl || 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=300&q=80',
       activo: item.tiene_inventario,
+      // 🔹 Fractionated Inventory Fields
+      manejaFracciones: item.maneja_fracciones,
+      contenidoCaja: item.contenido_caja || 24,
+      contenidoBlister: item.contenido_blister || 6,
+      precioCaja: item.precio_caja || item.precio,
+      precioBlister: item.precio_blister,
+      precioUnidad: item.precio_unidad,
     }));
 
     return { products, categories };
@@ -504,3 +668,4 @@ export class ExcelReader {
 }
 
 export const excelReader = new ExcelReader();
+

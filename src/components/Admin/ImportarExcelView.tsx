@@ -298,12 +298,15 @@ export const ImportarExcelView: React.FC = () => {
           </div>
 
           {/* Interactive Column Mapper */}
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
-              <SlidersHorizontal className="w-4 h-4 text-blue-600" />
-              <span>Mapeo Inteligente de Columnas (Puedes ajustar si tu archivo tiene otro orden):</span>
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
+                <SlidersHorizontal className="w-4 h-4 text-blue-600" />
+                <span>Mapeo Inteligente de Columnas (Ajusta si tu archivo tiene otro orden):</span>
+              </div>
             </div>
 
+            {/* General Fields Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 text-xs">
               <div>
                 <label className="text-[10px] font-bold text-slate-500 block mb-1">Nombre / Descripción:</label>
@@ -319,7 +322,21 @@ export const ImportarExcelView: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-slate-500 block mb-1">Precio de Venta:</label>
+                <label className="text-[10px] font-bold text-slate-500 block mb-1">Principio Activo / Sustancia:</label>
+                <select
+                  value={currentMapping.colPrincipioActivo}
+                  onChange={e => handleMappingChange('colPrincipioActivo', Number(e.target.value))}
+                  className="w-full px-2 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-semibold text-emerald-600 dark:text-emerald-400"
+                >
+                  <option value={-1}>-- No asignar / En descripción --</option>
+                  {readResult.columnasDetectadas.map((col, idx) => (
+                    <option key={idx} value={idx}>Col {idx}: {col || `Columna ${idx + 1}`}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-slate-500 block mb-1">Precio de Venta Base ($):</label>
                 <select
                   value={currentMapping.colPrecio}
                   onChange={e => handleMappingChange('colPrecio', Number(e.target.value))}
@@ -333,13 +350,13 @@ export const ImportarExcelView: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-slate-500 block mb-1">Existencia / Stock:</label>
+                <label className="text-[10px] font-bold text-slate-500 block mb-1">Stock General / Total:</label>
                 <select
                   value={currentMapping.colStock}
                   onChange={e => handleMappingChange('colStock', Number(e.target.value))}
                   className="w-full px-2 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-semibold text-purple-600 dark:text-purple-400"
                 >
-                  <option value={-1}>-- Por defecto (10) --</option>
+                  <option value={-1}>-- Calcular de columnas Caja/Blíster/Unidad --</option>
                   {readResult.columnasDetectadas.map((col, idx) => (
                     <option key={idx} value={idx}>Col {idx}: {col || `Columna ${idx + 1}`}</option>
                   ))}
@@ -361,7 +378,7 @@ export const ImportarExcelView: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-slate-500 block mb-1">Código de Barras / Ref Interna:</label>
+                <label className="text-[10px] font-bold text-slate-500 block mb-1">Código de Barras / SKU:</label>
                 <select
                   value={currentMapping.colCodigo}
                   onChange={e => handleMappingChange('colCodigo', Number(e.target.value))}
@@ -389,7 +406,7 @@ export const ImportarExcelView: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-slate-500 block mb-1">Presentación / Unidad:</label>
+                <label className="text-[10px] font-bold text-slate-500 block mb-1">Presentación / Unidad Medida:</label>
                 <select
                   value={currentMapping.colPresentacion}
                   onChange={e => handleMappingChange('colPresentacion', Number(e.target.value))}
@@ -400,6 +417,134 @@ export const ImportarExcelView: React.FC = () => {
                     <option key={idx} value={idx}>Col {idx}: {col || `Columna ${idx + 1}`}</option>
                   ))}
                 </select>
+              </div>
+            </div>
+
+            {/* 🔹 Farmacia & Fraccionado (3 Columnas de Stock & Precios Separados) */}
+            <div className="p-3.5 rounded-xl bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/60 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-black text-purple-900 dark:text-purple-200">
+                <span>📦</span>
+                <span>Columnas Especiales de Farmacia / POS (Stock 3 Columnas & Fraccionamiento):</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                {/* Columna Stock Caja */}
+                <div>
+                  <label className="text-[10px] font-bold text-purple-900 dark:text-purple-200 block mb-1">
+                    📦 Columna Stock Cajas:
+                  </label>
+                  <select
+                    value={currentMapping.colStockCaja}
+                    onChange={e => handleMappingChange('colStockCaja', Number(e.target.value))}
+                    className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-700 rounded-lg font-semibold text-purple-700 dark:text-purple-300"
+                  >
+                    <option value={-1}>-- No presente en archivo --</option>
+                    {readResult.columnasDetectadas.map((col, idx) => (
+                      <option key={idx} value={idx}>Col {idx}: {col || `Columna ${idx + 1}`}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Columna Stock Blíster */}
+                <div>
+                  <label className="text-[10px] font-bold text-purple-900 dark:text-purple-200 block mb-1">
+                    💊 Columna Stock Blísters:
+                  </label>
+                  <select
+                    value={currentMapping.colStockBlister}
+                    onChange={e => handleMappingChange('colStockBlister', Number(e.target.value))}
+                    className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-700 rounded-lg font-semibold text-purple-700 dark:text-purple-300"
+                  >
+                    <option value={-1}>-- No presente en archivo --</option>
+                    {readResult.columnasDetectadas.map((col, idx) => (
+                      <option key={idx} value={idx}>Col {idx}: {col || `Columna ${idx + 1}`}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Columna Stock Unidad */}
+                <div>
+                  <label className="text-[10px] font-bold text-purple-900 dark:text-purple-200 block mb-1">
+                    ⚪ Columna Stock Unidades / Sueltas:
+                  </label>
+                  <select
+                    value={currentMapping.colStockUnidad}
+                    onChange={e => handleMappingChange('colStockUnidad', Number(e.target.value))}
+                    className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-700 rounded-lg font-semibold text-purple-700 dark:text-purple-300"
+                  >
+                    <option value={-1}>-- No presente en archivo --</option>
+                    {readResult.columnasDetectadas.map((col, idx) => (
+                      <option key={idx} value={idx}>Col {idx}: {col || `Columna ${idx + 1}`}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Multiplicadores y Precios Fraccionados */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs pt-1 border-t border-purple-200/50 dark:border-purple-800/40">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 block mb-1">
+                    Unidades x Caja (x24):
+                  </label>
+                  <select
+                    value={currentMapping.colContenidoCaja}
+                    onChange={e => handleMappingChange('colContenidoCaja', Number(e.target.value))}
+                    className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200"
+                  >
+                    <option value={-1}>-- Por defecto (24) --</option>
+                    {readResult.columnasDetectadas.map((col, idx) => (
+                      <option key={idx} value={idx}>Col {idx}: {col || `Columna ${idx + 1}`}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 block mb-1">
+                    Unidades x Blíster (x6):
+                  </label>
+                  <select
+                    value={currentMapping.colContenidoBlister}
+                    onChange={e => handleMappingChange('colContenidoBlister', Number(e.target.value))}
+                    className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200"
+                  >
+                    <option value={-1}>-- Por defecto (6) --</option>
+                    {readResult.columnasDetectadas.map((col, idx) => (
+                      <option key={idx} value={idx}>Col {idx}: {col || `Columna ${idx + 1}`}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 block mb-1">
+                    Columna Precio Blíster:
+                  </label>
+                  <select
+                    value={currentMapping.colPrecioBlister}
+                    onChange={e => handleMappingChange('colPrecioBlister', Number(e.target.value))}
+                    className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200"
+                  >
+                    <option value={-1}>-- Auto / Calculado --</option>
+                    {readResult.columnasDetectadas.map((col, idx) => (
+                      <option key={idx} value={idx}>Col {idx}: {col || `Columna ${idx + 1}`}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 block mb-1">
+                    Columna Precio Unidad:
+                  </label>
+                  <select
+                    value={currentMapping.colPrecioUnidad}
+                    onChange={e => handleMappingChange('colPrecioUnidad', Number(e.target.value))}
+                    className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200"
+                  >
+                    <option value={-1}>-- Auto / Calculado --</option>
+                    {readResult.columnasDetectadas.map((col, idx) => (
+                      <option key={idx} value={idx}>Col {idx}: {col || `Columna ${idx + 1}`}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -430,18 +575,19 @@ export const ImportarExcelView: React.FC = () => {
             <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden text-xs">
               <div className="px-4 py-2 bg-slate-100 dark:bg-slate-800 font-bold text-[11px] text-slate-600 dark:text-slate-400 grid grid-cols-12">
                 <span className="col-span-1">Fila</span>
-                <span className="col-span-4">Nombre / Producto</span>
+                <span className="col-span-3">Nombre / Producto</span>
                 <span className="col-span-2">Código/EAN</span>
                 <span className="col-span-2">Categoría</span>
                 <span className="col-span-2 text-right">Precio</span>
-                <span className="col-span-1 text-center">Stock</span>
+                <span className="col-span-2 text-center">Stock Calculado</span>
               </div>
               <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-64 overflow-y-auto">
                 {readResult.productos.slice(0, 10).map((p) => (
                   <div key={p.row_number} className="px-4 py-2.5 grid grid-cols-12 items-center">
                     <span className="col-span-1 font-mono text-slate-400">[{p.row_number}]</span>
-                    <div className="col-span-4 font-bold text-slate-900 dark:text-white uppercase truncate">
+                    <div className="col-span-3 font-bold text-slate-900 dark:text-white uppercase truncate">
                       {p.nombre}
+                      {p.principio_activo && <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block font-semibold">💊 {p.principio_activo}</span>}
                       {p.marca && <span className="text-[10px] text-slate-400 block font-normal">{p.marca}</span>}
                     </div>
                     <span className="col-span-2 font-mono text-slate-500 truncate">{p.codigo_barras || '-'}</span>
@@ -449,14 +595,21 @@ export const ImportarExcelView: React.FC = () => {
                     <span className="col-span-2 text-right font-bold text-slate-900 dark:text-white">
                       {formatCOP(p.precio)}
                     </span>
-                    <div className="col-span-1 text-center">
+                    <div className="col-span-2 text-center flex flex-col items-center">
                       {p.tiene_inventario ? (
-                        <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-extrabold text-[10px]">
-                          {p.existencia_total}
-                        </span>
+                        <>
+                          <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-extrabold text-[10px]">
+                            {p.existencia_total} un. base
+                          </span>
+                          {p.maneja_fracciones && (
+                            <span className="text-[9px] text-purple-600 dark:text-purple-400 font-bold mt-0.5">
+                              📦{Math.floor(p.existencia_total / (p.contenido_caja || 24))}c · 💊{Math.floor(p.existencia_total / (p.contenido_blister || 6))}b · ⚪{p.existencia_total}u
+                            </span>
+                          )}
+                        </>
                       ) : (
                         <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 font-bold text-[10px]">
-                          0
+                          0 (Agotado)
                         </span>
                       )}
                     </div>
