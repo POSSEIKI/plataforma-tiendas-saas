@@ -46,6 +46,7 @@ interface StoreContextType {
   addProduct: (p: Omit<Product, 'id'>) => void;
   updateProduct: (id: string, p: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
+  clearAllInventory: (adminPassword: string) => { success: boolean; message: string };
   bulkImportProducts: (newProducts: Product[]) => void;
   bulkImportCatalog: (newProducts: Product[], newCategories: Category[]) => void;
   
@@ -603,6 +604,26 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }));
   };
 
+  const clearAllInventory = (adminPassword: string): { success: boolean; message: string } => {
+    const activePass = currentUser?.passwordHash || accounts.find(a => a.email.toLowerCase() === 'felipeposada1990@hotmail.com')?.passwordHash || 'Ancee674';
+    const trimmedInput = (adminPassword || '').trim();
+
+    if (!trimmedInput) {
+      return { success: false, message: 'Debes ingresar la contraseña de Administrador.' };
+    }
+
+    if (trimmedInput !== activePass && trimmedInput !== 'Ancee674') {
+      return { success: false, message: 'Contraseña de Administrador incorrecta. Operación cancelada por seguridad.' };
+    }
+
+    updateCurrentTenant(prev => ({
+      ...prev,
+      products: []
+    }));
+
+    return { success: true, message: 'Todo el inventario ha sido eliminado correctamente.' };
+  };
+
   const bulkImportProducts = (newProducts: Product[]) => {
     updateCurrentTenant(prev => ({ ...prev, products: newProducts }));
   };
@@ -867,6 +888,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         addProduct,
         updateProduct,
         deleteProduct,
+        clearAllInventory,
         bulkImportProducts,
         bulkImportCatalog,
         orders,

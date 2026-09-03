@@ -34,6 +34,7 @@ export const InventarioView: React.FC = () => {
     addProduct, 
     updateProduct, 
     deleteProduct, 
+    clearAllInventory,
     categories, 
     store, 
     updateStore,
@@ -46,6 +47,14 @@ export const InventarioView: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState<string>('todas');
   const [sortBy, setSortBy] = useState<'defecto' | 'precio_menor' | 'precio_mayor' | 'stock_menor'>('defecto');
   const [showAlertsMinimized, setShowAlertsMinimized] = useState(false);
+
+  // Security Purge Modal State (Eliminar Inventario Restringido)
+  const [purgeModalOpen, setPurgeModalOpen] = useState(false);
+  const [purgePassword, setPurgePassword] = useState('');
+  const [purgeError, setPurgeError] = useState<string | null>(null);
+  const [purgeSuccess, setPurgeSuccess] = useState<string | null>(null);
+  const [showPurgePass, setShowPurgePass] = useState(false);
+  const [isPurging, setIsPurging] = useState(false);
 
   // Modal State for Add / Edit
   const [modalOpen, setModalOpen] = useState(false);
@@ -279,8 +288,128 @@ export const InventarioView: React.FC = () => {
     link.click();
   };
 
+  const handleExecutePurge = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPurgeError(null);
+    setPurgeSuccess(null);
+    setIsPurging(true);
+
+    const res = clearAllInventory(purgePassword);
+    setIsPurging(false);
+
+    if (res.success) {
+      setPurgeSuccess(res.message);
+      setPurgePassword('');
+      setTimeout(() => {
+        setPurgeSuccess(null);
+        setPurgeModalOpen(false);
+      }, 1200);
+    } else {
+      setPurgeError(res.message);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
+      {/* Purge / Clear All Inventory Modal with Admin Password Protection */}
+      {purgeModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-sm animate-fadeIn">
+          <div className="relative max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-rose-200 dark:border-rose-900/80 space-y-4">
+            <div className="flex items-start justify-between">
+              <div className="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 flex items-center justify-center flex-shrink-0 shadow-inner">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <button
+                onClick={() => {
+                  setPurgeModalOpen(false);
+                  setPurgePassword('');
+                  setPurgeError(null);
+                }}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div>
+              <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                Eliminar Todo el Inventario
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                Esta acción eliminará de forma permanente los <strong>{products.length} productos</strong> registrados en el inventario actual.
+              </p>
+            </div>
+
+            {/* Notification error message */}
+            {purgeError && (
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center gap-2 animate-fadeIn">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                <span>{purgeError}</span>
+              </div>
+            )}
+
+            {/* Notification success message */}
+            {purgeSuccess && (
+              <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold flex items-center gap-2 animate-fadeIn">
+                <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-600" />
+                <span>{purgeSuccess}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleExecutePurge} className="space-y-4 pt-1">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  🔒 Ingresa la Clave del Administrador:
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPurgePass ? 'text' : 'password'}
+                    value={purgePassword}
+                    onChange={e => setPurgePassword(e.target.value)}
+                    placeholder="Contraseña de Admin..."
+                    required
+                    autoFocus
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-rose-500 focus:outline-none pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPurgePass(!showPurgePass)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                  >
+                    {showPurgePass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  Por seguridad, solo el Administrador autorizado puede ejecutar el vaciado.
+                </span>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPurgeModalOpen(false);
+                    setPurgePassword('');
+                    setPurgeError(null);
+                  }}
+                  className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isPurging || !purgePassword.trim()}
+                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold shadow-lg shadow-rose-600/25 flex items-center gap-1.5 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>{isPurging ? 'Verificando...' : 'Confirmar Eliminación'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Product Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-sm animate-fadeIn">
@@ -690,10 +819,10 @@ export const InventarioView: React.FC = () => {
 
       {/* Top Action Buttons */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handleExportCSV}
-            className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-1.5 transition shadow-sm"
+            className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-1.5 transition shadow-sm cursor-pointer"
           >
             <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
             <span>Exportar Excel / CSV</span>
@@ -701,11 +830,27 @@ export const InventarioView: React.FC = () => {
 
           <button
             onClick={() => setActiveAdminTab('importar-excel')}
-            className="px-3.5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 flex items-center gap-1.5 transition shadow-sm"
+            className="px-3.5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 flex items-center gap-1.5 transition shadow-sm cursor-pointer"
           >
             <UploadCloud className="w-3.5 h-3.5 text-emerald-600" />
             <span>Importar Archivo Excel/POS</span>
           </button>
+
+          {products.length > 0 && (
+            <button
+              onClick={() => {
+                setPurgeError(null);
+                setPurgeSuccess(null);
+                setPurgePassword('');
+                setPurgeModalOpen(true);
+              }}
+              className="px-3.5 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/80 text-xs font-bold text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/50 flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+              title="Eliminar todos los productos con clave de Administrador"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+              <span>Vaciar Inventario</span>
+            </button>
+          )}
         </div>
 
         <button
