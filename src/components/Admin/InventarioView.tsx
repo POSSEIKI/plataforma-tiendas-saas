@@ -41,7 +41,9 @@ export const InventarioView: React.FC = () => {
   } = useStore();
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchField, setSearchField] = useState<'todos' | 'nombre' | 'sustancia' | 'categoria'>('todos');
   const [stockFilter, setStockFilter] = useState<'todos' | 'con_stock' | 'sin_stock'>('todos');
+  const [categoryFilter, setCategoryFilter] = useState<string>('todas');
   const [sortBy, setSortBy] = useState<'defecto' | 'precio_menor' | 'precio_mayor' | 'stock_menor'>('defecto');
   const [showAlertsMinimized, setShowAlertsMinimized] = useState(false);
 
@@ -82,20 +84,43 @@ export const InventarioView: React.FC = () => {
   const conStockCount = products.filter(p => p.stock > 0).length;
   const sinStockCount = products.filter(p => p.stock <= 0).length;
 
-  // Filtered & sorted products
+  // Filtered & sorted products (Nombre, Sustancia / Principio Activo, Categoría, Stock)
   const filteredProducts = products
     .filter(p => {
-      const matchSearch = 
-        p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.codigoBarras && p.codigoBarras.includes(searchTerm)) ||
-        (p.principioActivo && p.principioActivo.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (p.laboratorio && p.laboratorio.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (p.presentacion && p.presentacion.toLowerCase().includes(searchTerm.toLowerCase()));
+      const term = searchTerm.toLowerCase().trim();
+      const catObj = categories.find(c => c.id === p.categoriaId);
+      const catName = catObj ? catObj.nombre.toLowerCase() : 'general';
 
-      if (!matchSearch) return false;
+      if (term) {
+        if (searchField === 'nombre') {
+          if (!p.nombre.toLowerCase().includes(term)) return false;
+        } else if (searchField === 'sustancia') {
+          const matchSustancia = 
+            (p.principioActivo && p.principioActivo.toLowerCase().includes(term)) ||
+            (p.laboratorio && p.laboratorio.toLowerCase().includes(term));
+          if (!matchSustancia) return false;
+        } else if (searchField === 'categoria') {
+          if (!catName.includes(term)) return false;
+        } else {
+          // 'todos': Búsqueda inteligente multi-campo (Nombre, Sustancia, Categoría, Marca, Código)
+          const matchGeneral = 
+            p.nombre.toLowerCase().includes(term) ||
+            (p.principioActivo && p.principioActivo.toLowerCase().includes(term)) ||
+            (p.laboratorio && p.laboratorio.toLowerCase().includes(term)) ||
+            catName.includes(term) ||
+            (p.codigoBarras && p.codigoBarras.includes(term)) ||
+            (p.presentacion && p.presentacion.toLowerCase().includes(term));
+          if (!matchGeneral) return false;
+        }
+      }
 
-      if (stockFilter === 'con_stock') return p.stock > 0;
-      if (stockFilter === 'sin_stock') return p.stock <= 0;
+      // Stock status filter
+      if (stockFilter === 'con_stock' && p.stock <= 0) return false;
+      if (stockFilter === 'sin_stock' && p.stock > 0) return false;
+
+      // Category filter dropdown
+      if (categoryFilter !== 'todas' && p.categoriaId !== categoryFilter) return false;
+
       return true;
     })
     .sort((a, b) => {
@@ -112,7 +137,7 @@ export const InventarioView: React.FC = () => {
   // Reset page to 1 when filters or search change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, stockFilter, sortBy]);
+  }, [searchTerm, searchField, stockFilter, categoryFilter, sortBy]);
 
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE) || 1;
   const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
@@ -772,71 +797,91 @@ export const InventarioView: React.FC = () => {
         </div>
       ) : (
         <div className="space-y-3">
-          {/* Search bar & filter pills */}
-          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none shadow-sm"
-                placeholder="Buscar producto por nombre, principio activo, marca o código..."
-              />
+          {/* Search bar & compact dropdown filters */}
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2.5">
+            {/* Search input with prefix criteria dropdown selector */}
+            <div className="relative flex-1 flex items-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xs focus-within:ring-2 focus-within:ring-emerald-500 overflow-hidden">
+              <select
+                value={searchField}
+                onChange={e => setSearchField(e.target.value as any)}
+                className="bg-slate-50 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 border-r border-slate-200 dark:border-slate-700 py-2.5 pl-3 pr-3 text-xs font-bold focus:outline-none cursor-pointer flex-shrink-0"
+                title="Filtrar criterio de búsqueda"
+              >
+                <option value="todos">🔍 Todo</option>
+                <option value="nombre">🏷️ Por Nombre</option>
+                <option value="sustancia">💊 Por Sustancia</option>
+                <option value="categoria">📁 Por Categoría</option>
+              </select>
+
+              <div className="relative flex-1 flex items-center">
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  className="w-full pl-3 pr-8 py-2.5 bg-transparent text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none"
+                  placeholder={
+                    searchField === 'nombre' ? 'Buscar por nombre comercial...' :
+                    searchField === 'sustancia' ? 'Buscar por principio activo / sustancia (ej: Acetaminofén)...' :
+                    searchField === 'categoria' ? 'Buscar por categoría (ej: Analgésicos)...' :
+                    'Buscar por nombre, sustancia o categoría...'
+                  }
+                />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer"
+                    title="Borrar búsqueda"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
 
-            {/* Filter Pills Selector (Todos / Con Stock / Sin Stock) */}
-            <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 shadow-inner flex-shrink-0 self-start md:self-auto overflow-x-auto max-w-full">
-              <button
-                type="button"
-                onClick={() => setStockFilter('todos')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                  stockFilter === 'todos'
-                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs font-black'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
+            {/* Filter Dropdowns Container */}
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+              {/* Dropdown 1: Estado de Stock */}
+              <select
+                value={stockFilter}
+                onChange={e => setStockFilter(e.target.value as any)}
+                className="flex-1 sm:flex-initial px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none shadow-xs cursor-pointer"
+                title="Filtrar por existencias"
               >
-                <span>📦 Todos</span>
-                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                  stockFilter === 'todos' ? 'bg-slate-200 dark:bg-slate-600 text-slate-900 dark:text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
-                }`}>
-                  {products.length}
-                </span>
-              </button>
+                <option value="todos">📦 Todo el Stock ({products.length})</option>
+                <option value="con_stock">🟢 Con Stock ({conStockCount})</option>
+                <option value="sin_stock">🔴 Sin Stock / Agotados ({sinStockCount})</option>
+              </select>
 
-              <button
-                type="button"
-                onClick={() => setStockFilter('con_stock')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                  stockFilter === 'con_stock'
-                    ? 'bg-emerald-600 text-white shadow-xs font-black'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400'
-                }`}
-              >
-                <span>🟢 Con Stock</span>
-                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                  stockFilter === 'con_stock' ? 'bg-emerald-700 text-white' : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
-                }`}>
-                  {conStockCount}
-                </span>
-              </button>
+              {/* Dropdown 2: Categoría */}
+              {categories.length > 0 && (
+                <select
+                  value={categoryFilter}
+                  onChange={e => setCategoryFilter(e.target.value)}
+                  className="flex-1 sm:flex-initial px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none shadow-xs cursor-pointer max-w-[180px] truncate"
+                  title="Filtrar por categoría"
+                >
+                  <option value="todas">📁 Categorías (Todas)</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>
+                      📁 {cat.nombre} ({products.filter(p => p.categoriaId === cat.id).length})
+                    </option>
+                  ))}
+                </select>
+              )}
 
-              <button
-                type="button"
-                onClick={() => setStockFilter('sin_stock')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                  stockFilter === 'sin_stock'
-                    ? 'bg-rose-600 text-white shadow-xs font-black'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400'
-                }`}
+              {/* Dropdown 3: Ordenar */}
+              <select
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value as any)}
+                className="flex-1 sm:flex-initial px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none shadow-xs cursor-pointer"
+                title="Ordenar productos"
               >
-                <span>🔴 Sin Stock</span>
-                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                  stockFilter === 'sin_stock' ? 'bg-rose-700 text-white' : 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300'
-                }`}>
-                  {sinStockCount}
-                </span>
-              </button>
+                <option value="defecto">↕️ Orden Normal</option>
+                <option value="precio_menor">💰 Menor Precio</option>
+                <option value="precio_mayor">💎 Mayor Precio</option>
+                <option value="stock_menor">⚠️ Menor Stock</option>
+              </select>
             </div>
           </div>
 
@@ -849,13 +894,18 @@ export const InventarioView: React.FC = () => {
                 {stockFilter === 'sin_stock'
                   ? '¡Excelente! Todos tus productos tienen existencias en este momento.'
                   : stockFilter === 'con_stock'
-                  ? 'No hay productos con existencias disponibles en esta vista.'
-                  : 'No se encontraron productos que coincidan con la búsqueda.'}
+                  ? 'No hay productos con existencias disponibles con los filtros actuales.'
+                  : 'No se encontraron productos que coincidan con la búsqueda o filtro.'}
               </p>
-              {(searchTerm || stockFilter !== 'todos') && (
+              {(searchTerm || stockFilter !== 'todos' || categoryFilter !== 'todas' || searchField !== 'todos') && (
                 <button
                   type="button"
-                  onClick={() => { setSearchTerm(''); setStockFilter('todos'); }}
+                  onClick={() => { 
+                    setSearchTerm(''); 
+                    setSearchField('todos');
+                    setStockFilter('todos'); 
+                    setCategoryFilter('todas');
+                  }}
                   className="px-4 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 font-bold text-xs hover:bg-emerald-100 transition cursor-pointer"
                 >
                   Restablecer filtros y ver todos los productos
