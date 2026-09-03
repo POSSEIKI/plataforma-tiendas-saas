@@ -22,7 +22,8 @@ import {
   XCircle,
   Menu,
   X,
-  ChevronDown
+  ChevronDown,
+  Trash2
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { soundManager } from '../../utils/audio';
@@ -50,6 +51,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     allStores,
     currentSlug,
     switchTenant,
+    deleteTenantStore,
     serviceBookings
   } = useStore();
 
@@ -193,33 +195,54 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                       {Object.entries(allStores).map(([slug, data]) => {
                         const isCurrent = slug === currentSlug;
                         return (
-                          <button
+                          <div
                             key={slug}
-                            type="button"
-                            onClick={() => {
-                              switchTenant(slug);
-                              setStoreMenuOpen(false);
-                            }}
-                            className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left transition cursor-pointer ${
+                            className={`w-full flex items-center justify-between p-2.5 rounded-xl transition ${
                               isCurrent
                                 ? 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200'
                                 : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
                             }`}
                           >
-                            <div className="min-w-0 pr-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                switchTenant(slug);
+                                setStoreMenuOpen(false);
+                              }}
+                              className="min-w-0 pr-2 text-left flex-1 cursor-pointer"
+                            >
                               <div className="font-extrabold text-xs truncate">
                                 {data.store.nombre || slug}
                               </div>
                               <div className="text-[10px] text-slate-400 truncate">
                                 {data.store.subdominio || `${slug}.mitienda.store`}
                               </div>
+                            </button>
+
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              {isCurrent ? (
+                                <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-black">
+                                  Activa
+                                </span>
+                              ) : (
+                                Object.keys(allStores).length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (confirm(`¿Eliminar la tienda "${data.store.nombre || slug}" de forma permanente?`)) {
+                                        deleteTenantStore(slug);
+                                      }
+                                    }}
+                                    className="p-1 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950 text-rose-600 dark:text-rose-400 transition cursor-pointer"
+                                    title="Eliminar esta tienda"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )
+                              )}
                             </div>
-                            {isCurrent && (
-                              <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-black flex-shrink-0">
-                                Activa
-                              </span>
-                            )}
-                          </button>
+                          </div>
                         );
                       })}
                     </div>

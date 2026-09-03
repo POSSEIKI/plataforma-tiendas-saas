@@ -37,6 +37,7 @@ interface StoreContextType {
   allStores: MultiTenantRegistry;
   switchTenant: (slug: string) => void;
   createNewTenantStore: (newStore: Store) => void;
+  deleteTenantStore: (slug: string) => void;
   
   // Current active store data
   store: Store;
@@ -99,7 +100,7 @@ interface StoreContextType {
   setLastCreatedOrderId: (id: number | null) => void;
   
   exportFullBackupJSON: () => string;
-  importFullBackupJSON: (jsonData: string) => boolean;
+  importFullBackupJSON: (json: string) => boolean;
   resetToCleanState: () => void;
 }
 
@@ -114,6 +115,7 @@ const ACTIVE_TAB_KEY = 'tiendas_saas_active_tab_v1';
 const LAST_ACTIVITY_KEY = 'tiendas_saas_last_activity_v1';
 const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes in milliseconds
 
+// Helper to check if session is still valid (under 30 minutes of inactivity)
 function isSessionValid(): boolean {
   if (typeof window === 'undefined') return false;
   const session = localStorage.getItem(AUTH_SESSION_KEY);
@@ -153,16 +155,21 @@ function resolveInitialSlug(): string {
   if (typeof window !== 'undefined') {
     const urlParams = new URLSearchParams(window.location.search);
     const paramTienda = urlParams.get('tienda');
-    if (paramTienda) return paramTienda.toLowerCase();
+    if (paramTienda && paramTienda.toLowerCase() !== 'aromasdevida') return paramTienda.toLowerCase();
 
     const host = window.location.hostname;
     // e.g. sanjuan.mitienda.store -> 'sanjuan'
     const parts = host.split('.');
-    if (parts.length > 2 && parts[0] !== 'www' && parts[0] !== 'app' && parts[0] !== 'localhost') {
+    if (parts.length > 2 && parts[0] !== 'www' && parts[0] !== 'app' && parts[0] !== 'localhost' && parts[0] !== 'aromasdevida') {
       return parts[0].toLowerCase();
     }
   }
-  return localStorage.getItem(ACTIVE_SLUG_KEY) || 'mitienda';
+  const savedSlug = localStorage.getItem(ACTIVE_SLUG_KEY);
+  if (savedSlug === 'aromasdevida') {
+    localStorage.setItem(ACTIVE_SLUG_KEY, 'mitienda');
+    return 'mitienda';
+  }
+  return savedSlug || 'mitienda';
 }
 
 function createDefaultTenantData(slug: string = 'mitienda', name: string = 'NOMBRE NEGOCIO'): TenantStoreData {
@@ -184,12 +191,33 @@ function createDefaultTenantData(slug: string = 'mitienda', name: string = 'NOMB
 }
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Multi-tenant database registry in local state
+  // Multi-tenant database registry in local state with automatic purge of aromasdevida
   const [registry, setRegistry] = useState<MultiTenantRegistry>(() => {
     const saved = localStorage.getItem(MULTITENANT_DB_KEY);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed: MultiTenantRegistry = JSON.parse(saved);
+        // If aromasdevida exists, migrate any valuable inventory/categories into mitienda and delete aromasdevida
+        if (parsed['aromasdevida']) {
+          const adData = parsed['aromasdevida'];
+          if (!parsed['mitienda'] || (adData.products.length > 0 && parsed['mitienda'].products.length === 0)) {
+            parsed['mitienda'] = {
+              ...adData,
+              store: {
+                ...adData.store,
+                slug: 'mitienda',
+                nombre: (adData.store.nombre && adData.store.nombre !== 'Aromas de Vida') ? adData.store.nombre : 'NOMBRE NEGOCIO',
+                subdominio: 'mitienda.mitienda.store',
+              }
+            };
+          }
+          delete parsed['aromasdevida'];
+          localStorage.setItem(MULTITENANT_DB_KEY, JSON.stringify(parsed));
+        }
+        if (!parsed['mitienda']) {
+          parsed['mitienda'] = createDefaultTenantData('mitienda', 'NOMBRE NEGOCIO');
+        }
+        return parsed;
       } catch (e) {
         console.error('Error loading multitenant DB:', e);
       }
@@ -198,9 +226,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return { mitienda: defaultData };
   });
 
-  const [currentSlug, setCurrentSlug] = useState<string>(resolveInitialSlug);
+  const [currentSlug, setCurrentSlug] = useState<string>(() => {
+    const initSlug = resolveInitialSlug();
+    if (initSlug === 'aromasdevida') {
+      localStorage.setItem(ACTIVE_SLUG_KEY, 'mitienda');
+      return 'mitienda';
+    }
+    return initSlug || 'mitienda';
+  });
 
-  // User Accounts & Authentication
+  // User Accounts & Authentication (Sanitized for felipeposada1990@hotmail.com)
   const [accounts, setAccounts] = useState<UserAccount[]>(() => {
     const saved = localStorage.getItem(ACCOUNTS_DB_KEY);
     if (saved) {
@@ -213,8 +248,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           hasFelipe.passwordHash = 'Ancee674';
           hasFelipe.vendedorPasswordHash = hasFelipe.vendedorPasswordHash || 'Ventas123';
           hasFelipe.role = 'superadmin';
+          hasFelipe.storeSlug = 'mitienda';
         }
-        return parsed;
+        return parsed.map(acc => ({
+          ...acc,
+          storeSlug: acc.storeSlug === 'aromasdevida' ? 'mitienda' : acc.storeSlug
+        }));
       } catch {}
     }
     return INITIAL_ACCOUNTS;
@@ -226,7 +265,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const session = localStorage.getItem(AUTH_SESSION_KEY);
         if (session) {
           localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
-          return JSON.parse(session);
+          const parsedUser: UserAccount = JSON.parse(session);
+          if (parsedUser.storeSlug === 'aromasdevida') {
+            parsedUser.storeSlug = 'mitienda';
+            localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(parsedUser));
+          }
+          return parsedUser;
         }
       } catch {}
     }
@@ -529,6 +573,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setRegistry(prev => ({ ...prev, [slug]: newTenant }));
     setCurrentSlug(slug);
+  };
+
+  const deleteTenantStore = (slugToDelete: string) => {
+    setRegistry(prev => {
+      const copy = { ...prev };
+      delete copy[slugToDelete];
+      if (Object.keys(copy).length === 0) {
+        copy['mitienda'] = createDefaultTenantData('mitienda', 'NOMBRE NEGOCIO');
+      }
+      return copy;
+    });
+    if (currentSlug === slugToDelete) {
+      setCurrentSlug('mitienda');
+      localStorage.setItem(ACTIVE_SLUG_KEY, 'mitienda');
+    }
   };
 
   // Theme Handlers
@@ -958,6 +1017,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         allStores: registry,
         switchTenant,
         createNewTenantStore,
+        deleteTenantStore,
         store,
         updateStore,
         products,
