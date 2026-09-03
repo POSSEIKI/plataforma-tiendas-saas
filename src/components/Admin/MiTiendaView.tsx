@@ -77,6 +77,37 @@ export const MiTiendaView: React.FC = () => {
   const [showUrlInput, setShowUrlInput] = useState(false);
   const logoInputRef = React.useRef<HTMLInputElement | null>(null);
 
+  React.useEffect(() => {
+    setFormData({
+      nombre: store.nombre,
+      whatsapp: store.whatsapp,
+      slogan: store.slogan || '',
+      logoUrl: store.logoUrl || '',
+      rubro: store.rubro,
+      subdominio: store.slug || 'mitienda',
+      descripcionCorta: store.descripcionCorta,
+      abierto24Horas: store.horarios.abierto24Horas,
+      horaApertura: store.horarios.horaApertura,
+      horaCierre: store.horarios.horaCierre,
+      viaTipo: store.direccion.viaTipo || 'Carrera',
+      viaNumero: store.direccion.viaNumero || '101',
+      viaLetra: store.direccion.viaLetraBis || 'B',
+      cruceTipo: store.direccion.cruceTipo || 'Calle',
+      cruceNumero: store.direccion.cruceNumero || '11',
+      cruceLetra: store.direccion.cruceLetraBis || 'B',
+      placa: store.direccion.placa || '28',
+      barrio: store.direccion.barrio || 'Ciudad Campestre',
+      complemento: store.direccion.complemento || 'APTO 718 - 5',
+      ciudad: store.ubicacion.ciudad || 'Cali',
+      departamento: store.ubicacion.departamento || 'Valle del Cauca',
+      coberturaKm: store.ubicacion.coberturaKm || 3.5,
+      lat: store.ubicacion.lat || 3.3688,
+      lng: store.ubicacion.lng || -76.5395,
+      direccionCompleta: store.direccion.direccionCompleta || '',
+      claveVendedor: store.claveVendedor || 'Ventas123',
+    });
+  }, [store.id, store.slug, store.nombre, store.subdominio]);
+
   const handleLogoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;

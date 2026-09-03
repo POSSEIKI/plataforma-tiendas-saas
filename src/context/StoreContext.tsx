@@ -577,10 +577,27 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Mutators for current active tenant
   const updateStore = (updated: Partial<Store>) => {
-    updateCurrentTenant(prev => ({
-      ...prev,
-      store: { ...prev.store, ...updated }
-    }));
+    setRegistry(prev => {
+      const current = prev[currentSlug] || createDefaultTenantData(currentSlug);
+      const newStore = { ...current.store, ...updated };
+      
+      const newSlug = updated.slug ? updated.slug.toLowerCase().replace(/[^a-z0-9-]/g, '') : currentSlug;
+      if (newSlug && newSlug !== currentSlug) {
+        newStore.slug = newSlug;
+        newStore.subdominio = `${newSlug}.mitienda.store`;
+        const updatedTenant = { ...current, store: newStore };
+        const newRegistry = { ...prev, [newSlug]: updatedTenant };
+        delete newRegistry[currentSlug];
+        setCurrentSlug(newSlug);
+        localStorage.setItem(ACTIVE_SLUG_KEY, newSlug);
+        return newRegistry;
+      }
+
+      return {
+        ...prev,
+        [currentSlug]: { ...current, store: newStore }
+      };
+    });
   };
 
   const addProduct = (p: Omit<Product, 'id'>) => {

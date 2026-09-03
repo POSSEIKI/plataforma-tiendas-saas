@@ -21,7 +21,8 @@ import {
   CheckCircle2, 
   XCircle,
   Menu,
-  X
+  X,
+  ChevronDown
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { soundManager } from '../../utils/audio';
@@ -53,6 +54,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   } = useStore();
 
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [storeMenuOpen, setStoreMenuOpen] = React.useState(false);
 
   const newOrdersCount = orders.filter(o => o.estado === 'nuevo').length;
   const lowStockCount = products.filter(p => p.stock <= 0).length;
@@ -128,11 +130,20 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               </div>
             )}
 
-            <div>
+            <div className="relative">
               <div className="flex items-center gap-2">
-                <h1 className="text-sm sm:text-base font-extrabold tracking-tight text-slate-900 dark:text-white truncate max-w-[200px] sm:max-w-xs md:max-w-md">
-                  {store.nombre}
-                </h1>
+                <button
+                  type="button"
+                  onClick={() => setStoreMenuOpen(!storeMenuOpen)}
+                  className="group flex items-center gap-1.5 hover:opacity-80 transition cursor-pointer text-left"
+                  title="Cambiar o gestionar tus tiendas"
+                >
+                  <h1 className="text-sm sm:text-base font-extrabold tracking-tight text-slate-900 dark:text-white truncate max-w-[180px] sm:max-w-xs md:max-w-md group-hover:text-emerald-600 transition">
+                    {store.nombre}
+                  </h1>
+                  <ChevronDown className={`w-4 h-4 text-slate-400 group-hover:text-emerald-600 transition-transform duration-200 ${storeMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
                 {/* Live Status Toggle */}
                 <button
                   onClick={toggleStoreStatus}
@@ -148,10 +159,15 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 </button>
               </div>
 
-              <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 truncate hidden sm:flex">
-                <span className="font-semibold text-emerald-700 dark:text-emerald-400">
-                  {store.subdominio || `${store.slug}.mitienda.store`}
-                </span>
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 truncate hidden sm:flex mt-0.5">
+                <button
+                  type="button"
+                  onClick={() => setActiveAdminTab('mi-tienda')}
+                  className="font-semibold text-emerald-700 dark:text-emerald-400 hover:underline cursor-pointer"
+                  title="Haz clic para cambiar el nombre o subdominio en Mi Tienda"
+                >
+                  {store.subdominio || `${store.slug || currentSlug}.mitienda.store`}
+                </button>
                 {store.ubicacion?.ciudad && (
                   <>
                     <span>·</span>
@@ -159,6 +175,71 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                   </>
                 )}
               </div>
+
+              {/* Store Switcher Dropdown Modal / Popup */}
+              {storeMenuOpen && (
+                <>
+                  <div
+                    onClick={() => setStoreMenuOpen(false)}
+                    className="fixed inset-0 z-40"
+                  />
+                  <div className="absolute left-0 top-full mt-2 w-72 sm:w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 p-2.5 space-y-2 animate-fadeIn">
+                    <div className="px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
+                      <span>Tus Tiendas Registradas</span>
+                      <span className="text-emerald-600 font-bold">{Object.keys(allStores).length} activas</span>
+                    </div>
+
+                    <div className="max-h-56 overflow-y-auto space-y-1">
+                      {Object.entries(allStores).map(([slug, data]) => {
+                        const isCurrent = slug === currentSlug;
+                        return (
+                          <button
+                            key={slug}
+                            type="button"
+                            onClick={() => {
+                              switchTenant(slug);
+                              setStoreMenuOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left transition cursor-pointer ${
+                              isCurrent
+                                ? 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200'
+                                : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                            }`}
+                          >
+                            <div className="min-w-0 pr-2">
+                              <div className="font-extrabold text-xs truncate">
+                                {data.store.nombre || slug}
+                              </div>
+                              <div className="text-[10px] text-slate-400 truncate">
+                                {data.store.subdominio || `${slug}.mitienda.store`}
+                              </div>
+                            </div>
+                            {isCurrent && (
+                              <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-black flex-shrink-0">
+                                Activa
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveAdminTab('mi-tienda');
+                          setStoreMenuOpen(false);
+                        }}
+                        className="w-full py-2 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold text-center transition flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <StoreIcon className="w-3.5 h-3.5" />
+                        <span>Configurar Datos & URL de esta Tienda</span>
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
