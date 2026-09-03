@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { 
   Tag, 
   Plus, 
@@ -25,6 +25,7 @@ export const CategoriasView: React.FC = () => {
     toggleCategoryStatus, 
     toggleAllCategories, 
     deleteCategory, 
+    clearAllCategories,
     products, 
     setActiveAdminTab 
   } = useStore();
@@ -33,6 +34,14 @@ export const CategoriasView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterMode, setFilterMode] = useState<'all' | 'active' | 'inactive'>('all');
   
+  // Security Purge Modal State (Eliminar Todas las Categorías)
+  const [purgeModalOpen, setPurgeModalOpen] = useState(false);
+  const [purgePassword, setPurgePassword] = useState('');
+  const [purgeError, setPurgeError] = useState<string | null>(null);
+  const [purgeSuccess, setPurgeSuccess] = useState<string | null>(null);
+  const [showPurgePass, setShowPurgePass] = useState(false);
+  const [isPurging, setIsPurging] = useState(false);
+
   // Inline editing state
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
@@ -76,8 +85,128 @@ export const CategoriasView: React.FC = () => {
     setEditingName('');
   };
 
+  const handleExecutePurgeCategories = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPurgeError(null);
+    setPurgeSuccess(null);
+    setIsPurging(true);
+
+    const res = clearAllCategories(purgePassword);
+    setIsPurging(false);
+
+    if (res.success) {
+      setPurgeSuccess(res.message);
+      setPurgePassword('');
+      setTimeout(() => {
+        setPurgeSuccess(null);
+        setPurgeModalOpen(false);
+      }, 1200);
+    } else {
+      setPurgeError(res.message);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
+      {/* Purge / Clear All Categories Modal with Admin Password Protection */}
+      {purgeModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-sm animate-fadeIn">
+          <div className="relative max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-rose-200 dark:border-rose-900/80 space-y-4">
+            <div className="flex items-start justify-between">
+              <div className="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 flex items-center justify-center flex-shrink-0 shadow-inner">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <button
+                onClick={() => {
+                  setPurgeModalOpen(false);
+                  setPurgePassword('');
+                  setPurgeError(null);
+                }}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div>
+              <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                Eliminar Todas las Categorías
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                Esta acción eliminará de forma permanente las <strong>{categories.length} categorías</strong> configuradas en tu tienda.
+              </p>
+            </div>
+
+            {/* Notification error message */}
+            {purgeError && (
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center gap-2 animate-fadeIn">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{purgeError}</span>
+              </div>
+            )}
+
+            {/* Notification success message */}
+            {purgeSuccess && (
+              <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold flex items-center gap-2 animate-fadeIn">
+                <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-600" />
+                <span>{purgeSuccess}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleExecutePurgeCategories} className="space-y-4 pt-1">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  🔒 Ingresa la Clave del Administrador:
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPurgePass ? 'text' : 'password'}
+                    value={purgePassword}
+                    onChange={e => setPurgePassword(e.target.value)}
+                    placeholder="Contraseña de Admin..."
+                    required
+                    autoFocus
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-rose-500 focus:outline-none pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPurgePass(!showPurgePass)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                  >
+                    {showPurgePass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  Por seguridad, solo el Administrador autorizado puede ejecutar el vaciado de categorías.
+                </span>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPurgeModalOpen(false);
+                    setPurgePassword('');
+                    setPurgeError(null);
+                  }}
+                  className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isPurging || !purgePassword.trim()}
+                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold shadow-lg shadow-rose-600/25 flex items-center gap-1.5 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>{isPurging ? 'Verificando...' : 'Confirmar Eliminación'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -89,7 +218,7 @@ export const CategoriasView: React.FC = () => {
           </p>
         </div>
 
-        {/* Global Bulk Toggles */}
+        {/* Global Bulk Toggles & Purge */}
         {categories.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
             <button
@@ -110,6 +239,21 @@ export const CategoriasView: React.FC = () => {
             >
               <EyeOff className="w-3.5 h-3.5" />
               <span>Deshabilitar Todas</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setPurgeError(null);
+                setPurgeSuccess(null);
+                setPurgePassword('');
+                setPurgeModalOpen(true);
+              }}
+              className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 font-bold rounded-xl text-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer border border-rose-200 dark:border-rose-800"
+              title="Eliminar todas las categorías con clave de Administrador"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+              <span>Vaciar Categorías</span>
             </button>
           </div>
         )}

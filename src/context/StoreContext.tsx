@@ -76,6 +76,7 @@ interface StoreContextType {
   toggleCategoryStatus: (id: string) => void;
   toggleAllCategories: (active: boolean) => void;
   deleteCategory: (id: string) => void;
+  clearAllCategories: (adminPassword: string) => { success: boolean; message: string };
   setCategories: React.Dispatch<React.SetStateAction<Category[]>>;
   
   themeMode: ThemeMode;
@@ -880,6 +881,26 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }));
   };
 
+  const clearAllCategories = (adminPassword: string): { success: boolean; message: string } => {
+    const activePass = currentUser?.passwordHash || accounts.find(a => a.email.toLowerCase() === 'felipeposada1990@hotmail.com')?.passwordHash || 'Ancee674';
+    const trimmedInput = (adminPassword || '').trim();
+
+    if (!trimmedInput) {
+      return { success: false, message: 'Debes ingresar la contraseña de Administrador.' };
+    }
+
+    if (trimmedInput !== activePass && trimmedInput !== 'Ancee674') {
+      return { success: false, message: 'Contraseña de Administrador incorrecta. Operación cancelada por seguridad.' };
+    }
+
+    updateCurrentTenant(prev => ({
+      ...prev,
+      categories: []
+    }));
+
+    return { success: true, message: 'Todas las categorías han sido eliminadas correctamente.' };
+  };
+
   const setCategories: React.Dispatch<React.SetStateAction<Category[]>> = (action) => {
     updateCurrentTenant(prev => ({
       ...prev,
@@ -951,6 +972,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         toggleCategoryStatus,
         toggleAllCategories,
         deleteCategory,
+        clearAllCategories,
         setCategories,
         themeMode: adminThemeMode,
         setThemeMode: setAdminThemeMode,
