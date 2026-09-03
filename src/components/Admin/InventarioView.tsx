@@ -54,6 +54,8 @@ export const InventarioView: React.FC = () => {
   const [formData, setFormData] = useState({
     nombre: '',
     descripcion: '',
+    principioActivo: '',
+    laboratorio: '',
     precio: 10000,
     precioAnterior: 0,
     stock: 10,
@@ -62,6 +64,17 @@ export const InventarioView: React.FC = () => {
     presentacion: 'UNIDAD',
     imagenUrl: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=300&q=80',
     activo: true,
+    // 🔹 Fractionated Inventory
+    manejaFracciones: false,
+    contenidoCaja: 24,
+    contenidoBlister: 6,
+    precioCaja: 28000,
+    precioBlister: 8000,
+    precioUnidad: 1500,
+    codigoBarrasBlister: '',
+    codigoBarrasUnidad: '',
+    unidadMedida: 'UNIDAD',
+    permiteDecimal: false,
   });
 
   // Low stock and out of stock items
@@ -73,6 +86,8 @@ export const InventarioView: React.FC = () => {
       const matchSearch = 
         p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (p.codigoBarras && p.codigoBarras.includes(searchTerm)) ||
+        (p.principioActivo && p.principioActivo.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (p.laboratorio && p.laboratorio.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (p.presentacion && p.presentacion.toLowerCase().includes(searchTerm.toLowerCase()));
 
       if (!matchSearch) return false;
@@ -110,6 +125,8 @@ export const InventarioView: React.FC = () => {
     setFormData({
       nombre: '',
       descripcion: '',
+      principioActivo: '',
+      laboratorio: '',
       precio: 10000,
       precioAnterior: 0,
       stock: 10,
@@ -118,6 +135,16 @@ export const InventarioView: React.FC = () => {
       presentacion: 'UNIDAD',
       imagenUrl: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=300&q=80',
       activo: true,
+      manejaFracciones: false,
+      contenidoCaja: 24,
+      contenidoBlister: 6,
+      precioCaja: 28000,
+      precioBlister: 8000,
+      precioUnidad: 1500,
+      codigoBarrasBlister: '',
+      codigoBarrasUnidad: '',
+      unidadMedida: 'UNIDAD',
+      permiteDecimal: false,
     });
     setModalOpen(true);
   };
@@ -129,6 +156,8 @@ export const InventarioView: React.FC = () => {
     setFormData({
       nombre: prod.nombre,
       descripcion: prod.descripcion || '',
+      principioActivo: prod.principioActivo || '',
+      laboratorio: prod.laboratorio || '',
       precio: prod.precio,
       precioAnterior: prod.precioAnterior || 0,
       stock: prod.stock,
@@ -137,6 +166,16 @@ export const InventarioView: React.FC = () => {
       presentacion: prod.presentacion,
       imagenUrl: prod.imagenUrl,
       activo: prod.activo,
+      manejaFracciones: !!prod.manejaFracciones,
+      contenidoCaja: prod.contenidoCaja || 24,
+      contenidoBlister: prod.contenidoBlister || 6,
+      precioCaja: prod.precioCaja || prod.precio,
+      precioBlister: prod.precioBlister || Math.round(prod.precio / 4),
+      precioUnidad: prod.precioUnidad || Math.round(prod.precio / 24),
+      codigoBarrasBlister: prod.codigoBarrasBlister || '',
+      codigoBarrasUnidad: prod.codigoBarrasUnidad || '',
+      unidadMedida: prod.unidadMedida || 'UNIDAD',
+      permiteDecimal: !!prod.permiteDecimal,
     });
     setModalOpen(true);
   };
@@ -162,32 +201,35 @@ export const InventarioView: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const productPayload = {
+      nombre: formData.nombre.trim(),
+      descripcion: formData.descripcion,
+      principioActivo: formData.principioActivo.trim() || undefined,
+      laboratorio: formData.laboratorio.trim() || undefined,
+      precio: Number(formData.precio),
+      precioAnterior: Number(formData.precioAnterior) || undefined,
+      stock: Number(formData.stock),
+      codigoBarras: formData.codigoBarras,
+      categoriaId: formData.categoriaId,
+      presentacion: formData.presentacion,
+      imagenUrl: formData.imagenUrl,
+      activo: formData.activo,
+      manejaFracciones: formData.manejaFracciones,
+      contenidoCaja: formData.manejaFracciones ? Number(formData.contenidoCaja) : undefined,
+      contenidoBlister: formData.manejaFracciones ? Number(formData.contenidoBlister) : undefined,
+      precioCaja: formData.manejaFracciones ? Number(formData.precioCaja) : undefined,
+      precioBlister: formData.manejaFracciones ? Number(formData.precioBlister) : undefined,
+      precioUnidad: formData.manejaFracciones ? Number(formData.precioUnidad) : undefined,
+      codigoBarrasBlister: formData.codigoBarrasBlister || undefined,
+      codigoBarrasUnidad: formData.codigoBarrasUnidad || undefined,
+      unidadMedida: formData.unidadMedida as any,
+      permiteDecimal: formData.permiteDecimal,
+    };
+
     if (editingProductId) {
-      updateProduct(editingProductId, {
-        nombre: formData.nombre.toUpperCase(),
-        descripcion: formData.descripcion,
-        precio: Number(formData.precio),
-        precioAnterior: Number(formData.precioAnterior) || undefined,
-        stock: Number(formData.stock),
-        codigoBarras: formData.codigoBarras,
-        categoriaId: formData.categoriaId,
-        presentacion: formData.presentacion.toUpperCase(),
-        imagenUrl: formData.imagenUrl,
-        activo: formData.activo,
-      });
+      updateProduct(editingProductId, productPayload);
     } else {
-      addProduct({
-        nombre: formData.nombre.toUpperCase(),
-        descripcion: formData.descripcion,
-        precio: Number(formData.precio),
-        precioAnterior: Number(formData.precioAnterior) || undefined,
-        stock: Number(formData.stock),
-        codigoBarras: formData.codigoBarras,
-        categoriaId: formData.categoriaId,
-        presentacion: formData.presentacion.toUpperCase(),
-        imagenUrl: formData.imagenUrl,
-        activo: formData.activo,
-      });
+      addProduct(productPayload);
     }
     setModalOpen(false);
   };
@@ -238,16 +280,44 @@ export const InventarioView: React.FC = () => {
                   type="text"
                   value={formData.nombre}
                   onChange={e => setFormData({ ...formData, nombre: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white uppercase font-bold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                  placeholder="Ej: PRODUCTO EJEMPLO 500G"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  placeholder="Ej: Dolex Avanzado 500mg"
                   required
                 />
+              </div>
+
+              {/* Principle Active & Laboratory */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Principio Activo (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.principioActivo}
+                    onChange={e => setFormData({ ...formData, principioActivo: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    placeholder="Ej: Acetaminofén 500mg + Cafeína"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Laboratorio / Fabricante (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.laboratorio}
+                    onChange={e => setFormData({ ...formData, laboratorio: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    placeholder="Ej: GSK, Bayer, Genfar..."
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Precio de Venta ($ COP)
+                    Precio de Venta Base ($ COP)
                   </label>
                   <input
                     type="number"
@@ -259,7 +329,7 @@ export const InventarioView: React.FC = () => {
                 </div>
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Stock Disponible
+                    Stock Total (Unidad Mínima Base)
                   </label>
                   <input
                     type="number"
@@ -271,17 +341,119 @@ export const InventarioView: React.FC = () => {
                 </div>
               </div>
 
+              {/* 🔹 Fraccionamiento de Inventario (Caja / Blíster / Pastilla Suelta) */}
+              <div className="p-4 rounded-2xl bg-purple-50/60 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800/50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">📦</span>
+                    <div>
+                      <label className="text-xs font-black text-slate-900 dark:text-white block cursor-pointer">
+                        ¿Habilitar Venta Fraccionada?
+                      </label>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Permite vender por caja, blíster o pastillas sueltas descontando de la unidad base.
+                      </span>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={formData.manejaFracciones}
+                    onChange={e => setFormData({ ...formData, manejaFracciones: e.target.checked })}
+                    className="w-5 h-5 rounded text-purple-600 focus:ring-purple-500 border-slate-300 cursor-pointer"
+                  />
+                </div>
+
+                {formData.manejaFracciones && (
+                  <div className="pt-3 border-t border-purple-200/60 dark:border-purple-800/40 space-y-3 animate-fadeIn">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                          Unidades por Caja (x)
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={formData.contenidoCaja}
+                          onChange={e => setFormData({ ...formData, contenidoCaja: Number(e.target.value) })}
+                          className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-700 rounded-xl text-slate-900 dark:text-white font-bold"
+                          placeholder="24"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                          Precio Caja Completa ($)
+                        </label>
+                        <input
+                          type="number"
+                          value={formData.precioCaja}
+                          onChange={e => setFormData({ ...formData, precioCaja: Number(e.target.value) })}
+                          className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-700 rounded-xl text-slate-900 dark:text-white font-bold"
+                          placeholder="28000"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                          Unidades por Blíster (x)
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={formData.contenidoBlister}
+                          onChange={e => setFormData({ ...formData, contenidoBlister: Number(e.target.value) })}
+                          className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-700 rounded-xl text-slate-900 dark:text-white font-bold"
+                          placeholder="6"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                          Precio 1 Blíster ($)
+                        </label>
+                        <input
+                          type="number"
+                          value={formData.precioBlister}
+                          onChange={e => setFormData({ ...formData, precioBlister: Number(e.target.value) })}
+                          className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-700 rounded-xl text-slate-900 dark:text-white font-bold"
+                          placeholder="8000"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Precio 1 Pastilla / Unidad Suelta ($)
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.precioUnidad}
+                        onChange={e => setFormData({ ...formData, precioUnidad: Number(e.target.value) })}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-700 rounded-xl text-slate-900 dark:text-white font-bold"
+                        placeholder="1500"
+                      />
+                    </div>
+
+                    {/* Equivalencia en Vivo */}
+                    <div className="p-2.5 rounded-xl bg-purple-100/70 dark:bg-purple-900/30 text-purple-950 dark:text-purple-200 text-xs font-semibold flex items-center justify-between">
+                      <span>⚡ Stock Base: <strong>{formData.stock} un.</strong></span>
+                      <span>Equivale a: <strong>{Math.floor(formData.stock / (formData.contenidoCaja || 24))} Cajas</strong> ó <strong>{Math.floor(formData.stock / (formData.contenidoBlister || 6))} Blísters</strong></span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Presentación
+                    Presentación / Unidad de Medida
                   </label>
                   <input
                     type="text"
                     value={formData.presentacion}
-                    onChange={e => setFormData({ ...formData, presentacion: e.target.value.toUpperCase() })}
+                    onChange={e => setFormData({ ...formData, presentacion: e.target.value })}
                     className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                    placeholder="UNIDAD, FRASCO, CAJA"
+                    placeholder="UNIDAD, KG, LB, CAJA"
                     required
                   />
                 </div>
@@ -612,49 +784,97 @@ export const InventarioView: React.FC = () => {
           </div>
 
           <div className="space-y-2.5">
-            {paginatedProducts.map(prod => (
-              <div
-                key={prod.id}
-                className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition flex flex-wrap items-center justify-between gap-3"
-              >
-                <div className="flex items-center gap-3.5 min-w-[240px]">
-                  <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-700">
-                    <img src={prod.imagenUrl} alt={prod.nombre} className="w-full h-full object-cover" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white uppercase">
-                        {prod.nombre}
-                      </h4>
-                      {!prod.activo && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold">
-                          inactivo
-                        </span>
+            {paginatedProducts.map(prod => {
+              const cajaSize = prod.contenidoCaja || 24;
+              const blisterSize = prod.contenidoBlister || 6;
+              const cajaStock = Math.floor(prod.stock / cajaSize);
+              const blisterStock = Math.floor(prod.stock / blisterSize);
+
+              return (
+                <div
+                  key={prod.id}
+                  className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition flex flex-wrap items-center justify-between gap-3"
+                >
+                  <div className="flex items-center gap-3.5 min-w-[240px]">
+                    <div className="w-14 h-14 rounded-xl bg-slate-100 dark:bg-slate-800 overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-700">
+                      <img src={prod.imagenUrl} alt={prod.nombre} className="w-full h-full object-contain p-1" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                          {prod.nombre}
+                        </h4>
+                        {!prod.activo && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold">
+                            inactivo
+                          </span>
+                        )}
+                        {prod.manejaFracciones && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 font-extrabold">
+                            ⚡ Fraccionado
+                          </span>
+                        )}
+                      </div>
+
+                      {(prod.principioActivo || prod.laboratorio) && (
+                        <p className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 truncate mt-0.5">
+                          {prod.principioActivo && <span>💊 {prod.principioActivo}</span>}
+                          {prod.laboratorio && <span className="opacity-80"> · Lab: {prod.laboratorio}</span>}
+                        </p>
+                      )}
+
+                      {/* Presentation Badges */}
+                      {prod.manejaFracciones ? (
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[10px] font-bold">
+                          <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                            📦 Caja x{cajaSize}: {formatCOP(prod.precioCaja || prod.precio)}
+                          </span>
+                          {prod.precioBlister && (
+                            <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                              💊 Blíster x{blisterSize}: {formatCOP(prod.precioBlister)}
+                            </span>
+                          )}
+                          {prod.precioUnidad && (
+                            <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                              ⚪ 1u: {formatCOP(prod.precioUnidad)}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                          · {prod.presentacion} · {categories.find(c => c.id === prod.categoriaId)?.nombre || 'General'}
+                        </p>
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-400 font-medium">
-                      · {prod.presentacion} · {categories.find(c => c.id === prod.categoriaId)?.nombre || 'General'}
-                    </p>
                   </div>
-                </div>
 
-                <div>
-                  {prod.stock === 0 ? (
-                    <span className="px-2.5 py-1 rounded-md bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 text-[11px] font-bold border border-rose-200 dark:border-rose-800">
-                      ❌ Agotado
-                    </span>
-                  ) : (
-                    <span className="px-2.5 py-1 rounded-md bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[11px] font-bold border border-emerald-200 dark:border-emerald-800">
-                      ✅ {prod.stock} en stock
-                    </span>
-                  )}
-                </div>
+                  <div>
+                    {prod.stock === 0 ? (
+                      <span className="px-2.5 py-1 rounded-md bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 text-[11px] font-bold border border-rose-200 dark:border-rose-800">
+                        ❌ Agotado
+                      </span>
+                    ) : prod.manejaFracciones ? (
+                      <div className="text-right">
+                        <span className="px-2.5 py-1 rounded-md bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[11px] font-bold border border-emerald-200 dark:border-emerald-800 inline-block">
+                          ✅ {prod.stock} un. base
+                        </span>
+                        <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                          {cajaStock} Cajas · {blisterStock} Blísters
+                        </p>
+                      </div>
+                    ) : (
+                      <span className="px-2.5 py-1 rounded-md bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[11px] font-bold border border-emerald-200 dark:border-emerald-800">
+                        ✅ {prod.stock} {prod.unidadMedida || 'unidades'}
+                      </span>
+                    )}
+                  </div>
 
-                <div className="text-right">
-                  <span className="text-sm font-extrabold text-slate-900 dark:text-white">
-                    {formatCOP(prod.precio)}
-                  </span>
-                </div>
+                  <div className="text-right">
+                    <span className="text-sm font-extrabold text-slate-900 dark:text-white block">
+                      {formatCOP(prod.precio)}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-medium">Precio Base</span>
+                  </div>
 
                 <div className="flex items-center gap-2">
                   <input
@@ -686,7 +906,8 @@ export const InventarioView: React.FC = () => {
                   </button>
                 </div>
               </div>
-            ))}
+            );
+          })}
           </div>
 
           {/* Pagination Controls Footer */}

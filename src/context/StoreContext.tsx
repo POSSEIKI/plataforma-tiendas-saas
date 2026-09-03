@@ -633,10 +633,26 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       fechaISO: dateStr,
     };
 
-    updateCurrentTenant(prev => ({
-      ...prev,
-      orders: [newOrder, ...prev.orders]
-    }));
+    updateCurrentTenant(prev => {
+      // 🔹 Descontar inventario en unidades mínimas base (Sincronización POS & Web)
+      const updatedProducts = prev.products.map(prod => {
+        const matchingItems = orderData.items.filter(i => i.productoId === prod.id);
+        if (matchingItems.length > 0) {
+          const totalADescontar = matchingItems.reduce((sum, item) => sum + (item.unidadesADescontar ?? item.cantidad), 0);
+          return {
+            ...prod,
+            stock: Math.max(0, prod.stock - totalADescontar)
+          };
+        }
+        return prod;
+      });
+
+      return {
+        ...prev,
+        products: updatedProducts,
+        orders: [newOrder, ...prev.orders]
+      };
+    });
 
     setLastCreatedOrderId(nextId);
     soundManager.playNewOrderChime();

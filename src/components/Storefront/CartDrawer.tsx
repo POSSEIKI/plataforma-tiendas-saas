@@ -160,7 +160,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
       msg += `💳 *Pago:* ${metodoPago.toUpperCase()}\n\n`;
       msg += `*PRODUCTOS:*\n`;
       cartItems.forEach(i => {
-        msg += `• ${i.cantidad}x ${i.nombre} (${i.presentacion}) = ${formatCOP(i.precio * i.cantidad)}\n`;
+        const presLabel = i.presentacionLabel || i.presentacion || 'Unidad';
+        msg += `• ${i.cantidad}x ${i.nombre} (${presLabel}) = ${formatCOP(i.precio * i.cantidad)}\n`;
       });
       msg += `\n*Subtotal:* ${formatCOP(subtotal)}\n`;
       msg += `*Envío:* ${formatCOP(costoEnvio)}\n`;
@@ -439,11 +440,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <h4 className={`font-black uppercase truncate ${isZenTemplate ? 'text-[#201e1d] dark:text-[#f5ead8] font-figtree' : 'text-slate-900 dark:text-white'}`}>
+                        <h4 className={`font-black truncate ${isZenTemplate ? 'text-[#201e1d] dark:text-[#f5ead8] font-figtree' : 'text-slate-900 dark:text-white'}`}>
                           {item.nombre}
                         </h4>
-                        <p className={`text-[11px] ${isZenTemplate ? 'text-[#6e5a4c] dark:text-[#baa896]' : 'text-slate-400'}`}>
-                          Presentación: {item.presentacion} · {formatCOP(item.precio)}
+                        <p className={`text-[11px] font-semibold ${isZenTemplate ? 'text-[#6e5a4c] dark:text-[#baa896]' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                          {item.presentacionLabel || item.presentacion} · {formatCOP(item.precio)} c/u
                         </p>
 
                         <div className={`flex items-center gap-1 mt-1.5 rounded-lg p-0.5 border w-fit ${
@@ -452,15 +453,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                             : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700'
                         }`}>
                           <button
-                            onClick={() => onUpdateQuantity(item.productoId, -1)}
-                            className="p-1 hover:opacity-75"
+                            onClick={() => onUpdateQuantity((item as any).itemKey || item.productoId, -1)}
+                            className="p-1 hover:opacity-75 cursor-pointer"
                           >
                             <Minus className="w-3 h-3" />
                           </button>
-                          <span className="px-2 font-bold">{item.cantidad}</span>
+                          <span className="px-2 font-bold text-xs">{item.cantidad}</span>
                           <button
-                            onClick={() => onUpdateQuantity(item.productoId, 1)}
-                            className="p-1 hover:opacity-75"
+                            onClick={() => onUpdateQuantity((item as any).itemKey || item.productoId, 1)}
+                            className="p-1 hover:opacity-75 cursor-pointer"
                           >
                             <Plus className="w-3 h-3" />
                           </button>
@@ -472,8 +473,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                           {formatCOP(item.precio * item.cantidad)}
                         </span>
                         <button
-                          onClick={() => onRemoveItem(item.productoId)}
-                          className="block text-slate-400 hover:text-rose-600 mt-1 ml-auto"
+                          onClick={() => onRemoveItem((item as any).itemKey || item.productoId)}
+                          className="block text-slate-400 hover:text-rose-600 mt-1 ml-auto cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   X, 
   Plus, 
@@ -10,9 +10,11 @@ import {
   Heart, 
   Check, 
   ShoppingBag,
-  CreditCard
+  CreditCard,
+  Package,
+  Barcode
 } from 'lucide-react';
-import { Product } from '../../types';
+import { Product, ProductPresentationType } from '../../types';
 import { formatCOP } from '../../utils/formatters';
 import { useStore } from '../../context/StoreContext';
 
@@ -20,7 +22,16 @@ interface ProductDetailModalProps {
   product: Product | null;
   isOpen: boolean;
   onClose: () => void;
-  onAddToCart: (product: Product, quantity: number) => void;
+  onAddToCart: (
+    product: Product, 
+    quantity: number,
+    options?: {
+      presentacion?: string;
+      presentacionLabel?: string;
+      precioUnitario?: number;
+      unidadesADescontar?: number;
+    }
+  ) => void;
 }
 
 export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
@@ -34,14 +45,81 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const [isFavorite, setIsFavorite] = useState(false);
   const [addedToast, setAddedToast] = useState(false);
 
+  const [selectedPres, setSelectedPres] = useState<ProductPresentationType>(() => {
+    if (product?.manejaFracciones) {
+      if (product.precioCaja && product.stock >= (product.contenidoCaja || 24)) return 'CAJA';
+      if (product.precioBlister && product.stock >= (product.contenidoBlister || 6)) return 'BLISTER';
+      if (product.precioUnidad) return 'UNIDAD';
+      return 'CAJA';
+    }
+    return 'REGULAR';
+  });
+
   if (!isOpen || !product) return null;
 
   const isZenTemplate = store.plantilla === 'zen';
   const categoryName = categories.find(c => c.id === product.categoriaId)?.nombre || 'PRODUCTO';
   const accent = isZenTemplate ? '#c67139' : (store.temaColor || '#059669');
 
+  // Multipliers
+  const cajaSize = product.contenidoCaja || 24;
+  const blisterSize = product.contenidoBlister || 6;
+
+  // Stock per presentation
+  const cajaStock = Math.floor(product.stock / cajaSize);
+  const blisterStock = Math.floor(product.stock / blisterSize);
+  const unidadStock = product.stock;
+
+  // Active price, label, and availability
+  const { activePrice, activeLabel, maxAvailable, unidadesPorItem, activeBarcode } = useMemo(() => {
+    if (product.manejaFracciones) {
+      if (selectedPres === 'CAJA') {
+        return {
+          activePrice: product.precioCaja || product.precio,
+          activeLabel: `Caja x${cajaSize}`,
+          maxAvailable: cajaStock,
+          unidadesPorItem: cajaSize,
+          activeBarcode: product.codigoBarras || product.codigo
+        };
+      }
+      if (selectedPres === 'BLISTER') {
+        return {
+          activePrice: product.precioBlister || Math.round((product.precioCaja || product.precio) / 4),
+          activeLabel: `Blíster x${blisterSize}`,
+          maxAvailable: blisterStock,
+          unidadesPorItem: blisterSize,
+          activeBarcode: product.codigoBarrasBlister || product.codigoBarras || product.codigo
+        };
+      }
+      if (selectedPres === 'UNIDAD') {
+        return {
+          activePrice: product.precioUnidad || Math.round((product.precioCaja || product.precio) / cajaSize),
+          activeLabel: `Pastilla individual`,
+          maxAvailable: unidadStock,
+          unidadesPorItem: 1,
+          activeBarcode: product.codigoBarrasUnidad || product.codigoBarras || product.codigo
+        };
+      }
+    }
+
+    return {
+      activePrice: product.precio,
+      activeLabel: product.presentacion || (product.unidadMedida ? `1 ${product.unidadMedida}` : 'Unidad'),
+      maxAvailable: product.stock,
+      unidadesPorItem: 1,
+      activeBarcode: product.codigoBarras || product.codigo
+    };
+  }, [product, selectedPres, cajaSize, blisterSize, cajaStock, blisterStock, unidadStock]);
+
+  const isOutOfStock = product.stock <= 0 || (product.manejaFracciones && maxAvailable <= 0);
+
   const handleAdd = () => {
-    onAddToCart(product, quantity);
+    onAddToCart(product, quantity, {
+      presentacion: product.manejaFracciones ? selectedPres : (product.presentacion || 'REGULAR'),
+      presentacionLabel: activeLabel,
+      precioUnitario: activePrice,
+      unidadesADescontar: quantity * unidadesPorItem
+    });
     setAddedToast(true);
     setTimeout(() => {
       setAddedToast(false);
@@ -55,7 +133,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
       {addedToast && (
         <div className="fixed top-6 z-50 px-5 py-2.5 rounded-full bg-slate-950 text-white font-extrabold text-xs shadow-2xl flex items-center gap-2 animate-bounce border border-slate-700">
           <Check className="w-4 h-4 text-emerald-400" />
-          <span>¡{product.nombre} {product.presentacion ? `(${product.presentacion})` : ''} agregado!</span>
+          <span>¡{product.nombre} ({activeLabel}) agregado al carrito!</span>
         </div>
       )}
 
@@ -68,7 +146,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         <div className="flex items-center justify-between">
           <span 
             style={isZenTemplate ? {} : { color: accent, backgroundColor: `${accent}18` }}
-            className={`px-3 py-1 rounded-full font-extrabold text-[11px] border flex items-center gap-1.5 uppercase ${
+            className={`px-3 py-1 rounded-full font-extrabold text-[11px] border flex items-center gap-1.5 ${
               isZenTemplate
                 ? 'bg-[#7a8a5e]/15 text-[#7a8a5e] dark:bg-[#7a8a5e]/25 dark:text-[#adc08f] border-[#7a8a5e]/30'
                 : 'border-current/10'
@@ -79,7 +157,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           </span>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -103,12 +181,29 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           <div>
             <h2 
               style={isZenTemplate ? { fontFamily: "'Caprasimo', serif" } : undefined}
-              className={`text-lg sm:text-xl font-black uppercase leading-tight ${
-                isZenTemplate ? 'font-caprasimo font-normal normal-case text-xl sm:text-2xl text-[#201e1d] dark:text-[#f5ead8]' : 'text-slate-900 dark:text-white'
+              className={`text-lg sm:text-xl font-black leading-tight ${
+                isZenTemplate ? 'font-caprasimo font-normal text-xl sm:text-2xl text-[#201e1d] dark:text-[#f5ead8]' : 'text-slate-900 dark:text-white'
               }`}
             >
               {product.nombre}
             </h2>
+
+            {/* Principle Active / Laboratory Badges */}
+            {(product.principioActivo || product.laboratorio) && (
+              <div className="flex flex-wrap items-center gap-2 pt-1.5">
+                {product.principioActivo && (
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                    💊 {product.principioActivo}
+                  </span>
+                )}
+                {product.laboratorio && (
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                    🏢 Lab: {product.laboratorio}
+                  </span>
+                )}
+              </div>
+            )}
+
             <div className={`flex flex-wrap items-center gap-2 pt-1 text-xs font-medium ${
               isZenTemplate ? 'text-[#6e5a4c] dark:text-[#baa896]' : 'text-slate-500 dark:text-slate-400'
             }`}>
@@ -116,108 +211,179 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 <Check className="w-3.5 h-3.5" />
                 <span>Calidad 100% Garantizada</span>
               </span>
-              {product.presentacion && (
+              {activeBarcode && (
                 <>
                   <span>·</span>
-                  <span>Presentación: {product.presentacion}</span>
+                  <span className="font-mono text-[11px] flex items-center gap-1">
+                    <Barcode className="w-3 h-3 text-slate-400" />
+                    <span>{activeBarcode}</span>
+                  </span>
                 </>
               )}
             </div>
           </div>
 
-          {/* Presentation Box */}
-          {product.presentacion && (
-            <div className={`p-3 rounded-xl border space-y-2 ${
+          {/* Description */}
+          {product.descripcion && (
+            <p className={`text-xs leading-relaxed ${isZenTemplate ? 'text-[#6e5a4c] dark:text-[#baa896]' : 'text-slate-600 dark:text-slate-400'}`}>
+              {product.descripcion}
+            </p>
+          )}
+
+          {/* 🔹 FRACTION SELECTOR IN MODAL */}
+          {product.manejaFracciones ? (
+            <div className={`p-3.5 rounded-2xl border space-y-2.5 ${
               isZenTemplate
                 ? 'bg-[#ebddc5]/40 dark:bg-[#251e18] border-[#decca8] dark:border-[#382b22]'
                 : 'bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700'
             }`}>
               <div className="flex items-center justify-between text-[11px] font-bold">
-                <span className={isZenTemplate ? 'text-[#4a392c] dark:text-[#d4c1ad]' : 'text-slate-600 dark:text-slate-400'}>PRESENTACIÓN:</span>
-                <span className={isZenTemplate ? 'text-[#7a8a5e] dark:text-[#adc08f] font-bold' : 'text-emerald-600 dark:text-emerald-400 font-bold'}>✓ DISPONIBLE</span>
+                <span className={isZenTemplate ? 'text-[#4a392c] dark:text-[#d4c1ad]' : 'text-slate-700 dark:text-slate-300'}>
+                  SELECCIONA LA PRESENTACIÓN DE COMPRA:
+                </span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-extrabold text-[10px]">
+                  Inventario Sincronizado
+                </span>
               </div>
-              <div className={`p-2.5 rounded-lg border-2 flex items-center justify-between ${
-                isZenTemplate
-                  ? 'bg-[#fcf8f2] dark:bg-[#1d1612] border-[#c67139]'
-                  : 'bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-500'
-              }`}>
-                <div className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${isZenTemplate ? 'bg-[#c67139]' : 'bg-emerald-600'}`}></span>
-                  <span className={`text-xs font-bold ${isZenTemplate ? 'text-[#201e1d] dark:text-[#f5ead8]' : 'text-slate-900 dark:text-white'}`}>
-                    {product.presentacion} · {formatCOP(product.precio)}
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {/* Caja Completa */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedPres('CAJA')}
+                  disabled={cajaStock === 0}
+                  className={`p-2.5 rounded-xl border-2 text-center transition flex flex-col items-center justify-center cursor-pointer ${
+                    selectedPres === 'CAJA'
+                      ? isZenTemplate
+                        ? 'bg-[#fcf8f2] dark:bg-[#1d1612] border-[#c67139] shadow-sm'
+                        : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 shadow-sm'
+                      : cajaStock === 0
+                        ? 'opacity-40 bg-slate-100 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 cursor-not-allowed'
+                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  <span className="text-xs font-bold">📦 Caja x{cajaSize}</span>
+                  <span className="text-sm font-black text-slate-900 dark:text-white mt-0.5">
+                    {formatCOP(product.precioCaja || product.precio)}
                   </span>
-                </div>
-                <span className={`text-[10px] font-extrabold ${isZenTemplate ? 'text-[#c67139] dark:text-[#e28a52]' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                  ✓ Disponible
+                  <span className="text-[10px] text-slate-500 mt-0.5">
+                    {cajaStock > 0 ? `${cajaStock} disp.` : 'Agotada'}
+                  </span>
+                </button>
+
+                {/* Blíster */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedPres('BLISTER')}
+                  disabled={blisterStock === 0}
+                  className={`p-2.5 rounded-xl border-2 text-center transition flex flex-col items-center justify-center cursor-pointer ${
+                    selectedPres === 'BLISTER'
+                      ? isZenTemplate
+                        ? 'bg-[#fcf8f2] dark:bg-[#1d1612] border-[#c67139] shadow-sm'
+                        : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 shadow-sm'
+                      : blisterStock === 0
+                        ? 'opacity-40 bg-slate-100 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 cursor-not-allowed'
+                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  <span className="text-xs font-bold">💊 Blíster x{blisterSize}</span>
+                  <span className="text-sm font-black text-slate-900 dark:text-white mt-0.5">
+                    {formatCOP(product.precioBlister || Math.round((product.precioCaja || product.precio) / 4))}
+                  </span>
+                  <span className="text-[10px] text-slate-500 mt-0.5">
+                    {blisterStock > 0 ? `${blisterStock} disp.` : 'Agotado'}
+                  </span>
+                </button>
+
+                {/* Pastilla Suelta */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedPres('UNIDAD')}
+                  disabled={unidadStock === 0}
+                  className={`p-2.5 rounded-xl border-2 text-center transition flex flex-col items-center justify-center cursor-pointer ${
+                    selectedPres === 'UNIDAD'
+                      ? isZenTemplate
+                        ? 'bg-[#fcf8f2] dark:bg-[#1d1612] border-[#c67139] shadow-sm'
+                        : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 shadow-sm'
+                      : unidadStock === 0
+                        ? 'opacity-40 bg-slate-100 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 cursor-not-allowed'
+                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  <span className="text-xs font-bold">⚪ Pastilla Suelta</span>
+                  <span className="text-sm font-black text-slate-900 dark:text-white mt-0.5">
+                    {formatCOP(product.precioUnidad || Math.round((product.precioCaja || product.precio) / cajaSize))}
+                  </span>
+                  <span className="text-[10px] text-slate-500 mt-0.5">
+                    {unidadStock > 0 ? `${unidadStock} disp.` : 'Agotada'}
+                  </span>
+                </button>
+              </div>
+
+              <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 pt-1 flex items-center justify-between">
+                <span>Stock Base en Droguería:</span>
+                <span className="font-extrabold text-emerald-600 dark:text-emerald-400">
+                  {product.stock} pastillas ({cajaStock} Cajas o {blisterStock} Blísters disponibles)
                 </span>
               </div>
             </div>
+          ) : (
+            product.presentacion && (
+              <div className={`p-3 rounded-xl border flex items-center justify-between text-xs font-bold ${
+                isZenTemplate
+                  ? 'bg-[#ebddc5]/40 dark:bg-[#251e18] border-[#decca8] dark:border-[#382b22]'
+                  : 'bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700'
+              }`}>
+                <span>PRESENTACIÓN:</span>
+                <span className={isZenTemplate ? 'text-[#7a8a5e] dark:text-[#adc08f]' : 'text-emerald-600 dark:text-emerald-400'}>
+                  ✓ {product.presentacion}
+                </span>
+              </div>
+            )
           )}
 
           {/* Price & Stock status */}
-          <div className={`p-3 rounded-xl border flex items-center justify-between ${
+          <div className={`p-3.5 rounded-xl border flex items-center justify-between ${
             isZenTemplate
               ? 'bg-[#c67139]/10 border-[#c67139]/25 dark:bg-[#c67139]/20 dark:border-[#c67139]/40'
               : 'bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800'
           }`}>
             <div>
-              <span className={`text-[10px] font-bold block ${isZenTemplate ? 'text-[#6e5a4c] dark:text-[#baa896]' : 'text-slate-400'}`}>PRECIO:</span>
-              <span className={`text-xl font-black ${isZenTemplate ? 'text-[#201e1d] dark:text-[#f5ead8]' : 'text-slate-900 dark:text-white'}`}>
-                {formatCOP(product.precio)}
+              <span className={`text-[10px] font-bold block ${isZenTemplate ? 'text-[#6e5a4c] dark:text-[#baa896]' : 'text-slate-400'}`}>
+                PRECIO {product.manejaFracciones ? `(${activeLabel})` : ''}:
+              </span>
+              <span className={`text-2xl font-black ${isZenTemplate ? 'text-[#201e1d] dark:text-[#f5ead8]' : 'text-slate-900 dark:text-white'}`}>
+                {formatCOP(activePrice)}
               </span>
             </div>
             <span 
               style={{ backgroundColor: isZenTemplate ? '#7a8a5e' : accent }}
-              className="px-3 py-1 rounded-lg text-white font-extrabold text-xs shadow-sm flex items-center gap-1"
+              className="px-3.5 py-1.5 rounded-xl text-white font-extrabold text-xs shadow-sm flex items-center gap-1"
             >
-              <Check className="w-3.5 h-3.5" />
-              <span>{product.stock > 0 ? 'En Stock' : 'Disponible'}</span>
+              <Check className="w-4 h-4" />
+              <span>{maxAvailable > 0 ? `${maxAvailable} Disponibles` : 'Agotado'}</span>
             </span>
           </div>
 
           {/* 4 Universal Trust Badges */}
           <div className="grid grid-cols-2 gap-2 text-[11px] font-semibold">
             <div className={`p-2 rounded-lg border flex items-center gap-2 ${
-              isZenTemplate ? 'bg-[#ebddc5]/40 dark:bg-[#251e18] border-[#decca8] dark:border-[#382b22] text-[#201e1d] dark:text-[#f5ead8]' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+              isZenTemplate
+                ? 'bg-white/60 dark:bg-[#231c16] border-[#decca8] dark:border-[#382b22] text-[#4a392c] dark:text-[#baa896]'
+                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
             }`}>
-              <ShieldCheck className={`w-4 h-4 ${isZenTemplate ? 'text-[#7a8a5e] dark:text-[#adc08f]' : 'text-blue-600'}`} />
-              <span>100% Original Sellado</span>
+              <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <span>Garantía & Autenticidad</span>
             </div>
             <div className={`p-2 rounded-lg border flex items-center gap-2 ${
-              isZenTemplate ? 'bg-[#ebddc5]/40 dark:bg-[#251e18] border-[#decca8] dark:border-[#382b22] text-[#201e1d] dark:text-[#f5ead8]' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+              isZenTemplate
+                ? 'bg-white/60 dark:bg-[#231c16] border-[#decca8] dark:border-[#382b22] text-[#4a392c] dark:text-[#baa896]'
+                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
             }`}>
-              <Sparkles className={`w-4 h-4 ${isZenTemplate ? 'text-[#c67139]' : 'text-emerald-600'}`} />
-              <span>Máxima Calidad</span>
-            </div>
-            <div className={`p-2 rounded-lg border flex items-center gap-2 ${
-              isZenTemplate ? 'bg-[#ebddc5]/40 dark:bg-[#251e18] border-[#decca8] dark:border-[#382b22] text-[#201e1d] dark:text-[#f5ead8]' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
-            }`}>
-              <Bike className="w-4 h-4 text-red-500" />
-              <span>Domicilio Express</span>
-            </div>
-            <div className={`p-2 rounded-lg border flex items-center gap-2 ${
-              isZenTemplate ? 'bg-[#ebddc5]/40 dark:bg-[#251e18] border-[#decca8] dark:border-[#382b22] text-[#201e1d] dark:text-[#f5ead8]' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
-            }`}>
-              <MessageSquare className={`w-4 h-4 ${isZenTemplate ? 'text-[#7a8a5e] dark:text-[#adc08f]' : 'text-teal-600'}`} />
-              <span>Atención Directa</span>
+              <Bike className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <span>Despacho a Domicilio</span>
             </div>
           </div>
-
-          {/* Información & Descripción */}
-          {product.descripcion && (
-            <div className={`p-3 rounded-xl border text-xs space-y-1 ${
-              isZenTemplate
-                ? 'bg-[#ebddc5]/30 dark:bg-[#201813] border-[#decca8] dark:border-[#382b22]'
-                : 'bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700'
-            }`}>
-              <span className={`font-extrabold text-[10px] uppercase block ${isZenTemplate ? 'text-[#6e5a4c] dark:text-[#baa896]' : 'text-slate-400'}`}>
-                INFORMACIÓN DEL PRODUCTO
-              </span>
-              <p className={`text-[11px] leading-relaxed ${isZenTemplate ? 'text-[#4a392c] dark:text-[#d4c1ad]' : 'text-slate-600 dark:text-slate-400'}`}>
-                {product.descripcion}
-              </p>
-            </div>
-          )}
         </div>
 
         {/* Bottom Actions: Counter & Add Button & Favorite */}
@@ -231,7 +397,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             <button
               type="button"
               onClick={() => setQuantity(Math.max(1, quantity - 1))}
-              className="p-1.5 rounded-lg hover:opacity-75"
+              className="p-1.5 rounded-lg hover:opacity-75 cursor-pointer"
             >
               <Minus className="w-3.5 h-3.5" />
             </button>
@@ -241,7 +407,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             <button
               type="button"
               onClick={() => setQuantity(quantity + 1)}
-              className="p-1.5 rounded-lg hover:opacity-75"
+              className="p-1.5 rounded-lg hover:opacity-75 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
             </button>
@@ -251,11 +417,12 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           <button
             type="button"
             onClick={handleAdd}
-            style={{ backgroundColor: accent }}
-            className="flex-1 py-3 px-4 text-white font-extrabold rounded-xl text-xs sm:text-sm shadow-lg flex items-center justify-center gap-2 hover:brightness-110 active:scale-98 transition"
+            disabled={isOutOfStock}
+            style={!isOutOfStock ? { backgroundColor: accent } : {}}
+            className="flex-1 py-3 px-4 text-white font-extrabold rounded-xl text-xs sm:text-sm shadow-lg flex items-center justify-center gap-2 hover:brightness-110 active:scale-98 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             <ShoppingBag className="w-4 h-4" />
-            <span>Añadir al Pedido · {formatCOP(product.precio * quantity)}</span>
+            <span>Añadir al Pedido · {formatCOP(activePrice * quantity)}</span>
           </button>
 
           {/* Favorite Button */}

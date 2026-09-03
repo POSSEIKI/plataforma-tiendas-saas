@@ -85,19 +85,47 @@ export interface PaymentAccounts {
   wompi: { activo: boolean; publicKey: string };
 }
 
+export type UnidadMedidaType = 'UNIDAD' | 'KG' | 'LB' | 'GRAMO' | 'METRO' | 'LITRO' | 'PAQUETE';
+
+export type ProductPresentationType = 'CAJA' | 'BLISTER' | 'UNIDAD' | 'REGULAR';
+
 export interface Product {
   id: string;
+  codigo?: string;
   nombre: string;
   descripcion?: string;
-  precio: number;
+  principioActivo?: string;       // ej: "Acetaminofén 500mg + Cafeína"
+  laboratorio?: string;           // ej: "GSK", "Genfar", "Bayer"
+  precio: number;                 // Precio de venta estándar / base
   precioAnterior?: number;
-  stock: number;
-  codigoBarras?: string;
+  stock: number;                  // 🔹 STOCK TOTAL ALMACENADO EN UNIDADES MÍNIMAS BASE
+  codigoBarras?: string;          // Código de barras de la caja / empaque principal
   categoriaId: string;
-  presentacion: string; // ej: UNIDAD, AMPOLLA, SOBRES, PAQUETE
+  presentacion: string;           // ej: UNIDAD, CAJA, BLISTER, KG, etc.
   imagenUrl: string;
   activo: boolean;
   destacado?: boolean;
+
+  // 🔹 BANDERAS Y MULTIPLICADORES DE FRACCIONAMIENTO:
+  manejaFracciones?: boolean;     // ¿Se vende por caja, blíster o suelto?
+  contenidoCaja?: number;         // 1 Caja trae N unidades base (ej: 24)
+  contenidoBlister?: number;      // 1 Blíster trae N unidades base (ej: 6)
+
+  // 🔹 PRECIOS DE VENTA AL PÚBLICO:
+  precioCaja?: number;            // Precio llevando la caja completa (ej: 28000)
+  precioBlister?: number;         // Precio llevando 1 blíster (ej: 8000)
+  precioUnidad?: number;          // Precio llevando 1 pastilla/unidad suelta (ej: 1500)
+
+  // 🔹 CÓDIGOS DE BARRAS POR PRESENTACIÓN:
+  codigoBarrasBlister?: string;   // Código de barras del blíster
+  codigoBarrasUnidad?: string;    // Código de barras de la unidad / tira / sobre
+
+  // 🔹 VENTA POR PESO / GRANEL DECIMAL:
+  unidadMedida?: UnidadMedidaType;// 'UNIDAD' | 'KG' | 'LB' | 'GRAMO' | 'METRO' | 'LITRO'
+  permiteDecimal?: boolean;       // Soporte para decimales (ej: 0.500 kg = 1 lb)
+  pasoDecimal?: number;           // Incremento decimal (ej: 0.1, 0.25, 0.5)
+
+  ivaPorcentaje?: number;
 }
 
 export interface Category {
@@ -150,9 +178,12 @@ export interface OrderItem {
   productoId: string;
   nombre: string;
   precio: number;
-  cantidad: number;
-  presentacion: string;
+  cantidad: number;               // Soporta decimales para peso (ej: 0.5 kg) o enteros
+  presentacion: string;           // 'CAJA' | 'BLISTER' | 'UNIDAD' | 'REGULAR' | 'KG' | 'LB'
+  presentacionLabel?: string;     // ej: "Caja x24", "Blíster x6", "Pastilla individual"
+  unidadesADescontar?: number;    // 🔹 Unidades base a descontar del stock (ej: 2 blísters * 6 = 12)
   imagenUrl?: string;
+  subtotal?: number;
 }
 
 export interface Order {

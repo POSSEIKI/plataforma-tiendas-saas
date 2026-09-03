@@ -72,39 +72,74 @@ export const StorefrontView: React.FC = () => {
     setCurrentBannerIndex(prev => (prev + 1) % activeBanners.length);
   };
 
-  // Cart operations
-  const handleAddToCart = (product: Product, quantity: number = 1) => {
+  // Cart operations with Fractionated Inventory support
+  const handleAddToCart = (
+    product: Product, 
+    quantity: number = 1,
+    options?: {
+      presentacion?: string;
+      presentacionLabel?: string;
+      precioUnitario?: number;
+      unidadesADescontar?: number;
+    }
+  ) => {
+    const selectedPrice = options?.precioUnitario ?? product.precio;
+    const selectedPres = options?.presentacion ?? product.presentacion ?? 'REGULAR';
+    const selectedLabel = options?.presentacionLabel ?? product.presentacion ?? (product.unidadMedida ? `1 ${product.unidadMedida}` : 'Unidad');
+    const unidadesBasePorUnidad = options?.unidadesADescontar ? (options.unidadesADescontar / quantity) : 1;
+    const itemKey = `${product.id}-${selectedPres}`;
+
     setCartItems(prev => {
-      const existing = prev.find(item => item.productoId === product.id);
-      if (existing) {
-        return prev.map(item =>
-          item.productoId === product.id
-            ? { ...item, cantidad: item.cantidad + quantity }
-            : item
-        );
+      const existingIndex = prev.findIndex(item => (item as any).itemKey === itemKey || (item.productoId === product.id && item.presentacion === selectedPres));
+      if (existingIndex >= 0) {
+        return prev.map((item, idx) => {
+          if (idx === existingIndex) {
+            const newQty = item.cantidad + quantity;
+            return {
+              ...item,
+              cantidad: newQty,
+              subtotal: newQty * item.precio,
+              unidadesADescontar: newQty * unidadesBasePorUnidad
+            };
+          }
+          return item;
+        });
       }
+
       return [
         ...prev,
         {
           productoId: product.id,
           nombre: product.nombre,
-          precio: product.precio,
+          precio: selectedPrice,
           cantidad: quantity,
-          presentacion: product.presentacion,
+          presentacion: selectedPres,
+          presentacionLabel: selectedLabel,
+          unidadesADescontar: quantity * unidadesBasePorUnidad,
           imagenUrl: product.imagenUrl,
-        }
+          subtotal: quantity * selectedPrice,
+          itemKey
+        } as any
       ];
     });
     setIsCartOpen(true);
   };
 
-  const handleUpdateQuantity = (productoId: string, delta: number) => {
+  const handleUpdateQuantity = (itemKeyOrId: string, delta: number) => {
     setCartItems(prev => {
       return prev
         .map(item => {
-          if (item.productoId === productoId) {
+          const match = (item as any).itemKey === itemKeyOrId || item.productoId === itemKeyOrId;
+          if (match) {
             const newQty = item.cantidad + delta;
-            return newQty > 0 ? { ...item, cantidad: newQty } : null;
+            if (newQty <= 0) return null;
+            const singleBaseUnits = (item.unidadesADescontar && item.cantidad) ? (item.unidadesADescontar / item.cantidad) : 1;
+            return { 
+              ...item, 
+              cantidad: newQty,
+              subtotal: newQty * item.precio,
+              unidadesADescontar: newQty * singleBaseUnits
+            };
           }
           return item;
         })
@@ -112,8 +147,8 @@ export const StorefrontView: React.FC = () => {
     });
   };
 
-  const handleRemoveItem = (productoId: string) => {
-    setCartItems(prev => prev.filter(item => item.productoId !== productoId));
+  const handleRemoveItem = (itemKeyOrId: string) => {
+    setCartItems(prev => prev.filter(item => (item as any).itemKey !== itemKeyOrId && item.productoId !== itemKeyOrId));
   };
 
   const totalCartCount = cartItems.reduce((sum, item) => sum + item.cantidad, 0);
