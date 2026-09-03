@@ -130,23 +130,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
             <div>
               <div className="flex items-center gap-2">
-                {Object.keys(allStores).length > 1 ? (
-                  <select
-                    value={currentSlug}
-                    onChange={e => switchTenant(e.target.value)}
-                    className="text-xs sm:text-sm font-extrabold tracking-tight text-slate-900 dark:text-white uppercase bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 focus:ring-2 focus:ring-emerald-500"
-                  >
-                    {Object.entries(allStores).map(([slug, data]) => (
-                      <option key={slug} value={slug}>
-                        🏢 {data.store.nombre} ({slug})
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <h1 className="text-sm sm:text-base font-extrabold tracking-tight text-slate-900 dark:text-white uppercase truncate max-w-[200px] sm:max-w-xs md:max-w-md">
-                    {store.nombre}
-                  </h1>
-                )}
+                <h1 className="text-sm sm:text-base font-extrabold tracking-tight text-slate-900 dark:text-white uppercase truncate max-w-[200px] sm:max-w-xs md:max-w-md">
+                  {store.nombre}
+                </h1>
                 {/* Live Status Toggle */}
                 <button
                   onClick={toggleStoreStatus}
