@@ -147,9 +147,18 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                   <span>{store.horarios.estaAbiertaActualmente ? 'Abierta' : 'Cerrada'}</span>
                 </button>
               </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate hidden sm:block">
-                {store.subdominio} · Inquilino Activo ({currentSlug})
-              </p>
+
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 truncate hidden sm:flex">
+                <span className="font-semibold text-emerald-700 dark:text-emerald-400">
+                  {store.subdominio || `${store.slug}.mitienda.store`}
+                </span>
+                {store.ubicacion?.ciudad && (
+                  <>
+                    <span>·</span>
+                    <span>📍 {store.ubicacion.ciudad}</span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
