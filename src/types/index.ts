@@ -75,10 +75,26 @@ export interface NequiPaymentConfig {
   tipoCobro?: 'push' | 'qr_dinamico' | 'ambos';
 }
 
+export interface DaviplataPaymentConfig {
+  activo: boolean;
+  tipoIntegracion?: 'api' | 'manual';
+  // Manual / Transferencia Directa
+  celular: string;
+  titular: string;
+  qrUrl?: string;
+  // API Oficial Daviplata / Davivienda API Market
+  apiKey?: string;
+  clientId?: string;
+  clientSecret?: string;
+  idComercio?: string;
+  entorno?: 'sandbox' | 'produccion';
+  tipoCobro?: 'push' | 'qr_dinamico' | 'ambos';
+}
+
 export interface PaymentAccounts {
   whatsapp: { activo: boolean; numero: string };
   nequi: NequiPaymentConfig;
-  daviplata: { activo: boolean; celular: string; titular: string; qrUrl?: string };
+  daviplata: DaviplataPaymentConfig;
   bancolombia: { activo: boolean; tipoCuenta: 'Ahorros' | 'Corriente'; numeroCuenta: string; titular: string; qrUrl?: string };
   efectivo: { activo: boolean; solicitarCambio: boolean };
   redeban: { activo: boolean; merchantId: string; terminalId: string; apiKey: string; entorno: 'sandbox' | 'produccion' };

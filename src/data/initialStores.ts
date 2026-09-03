@@ -71,7 +71,18 @@ export const INITIAL_STORE: Store = {
       entorno: 'sandbox',
       tipoCobro: 'ambos'
     },
-    daviplata: { activo: true, celular: '3001234567', titular: 'NOMBRE NEGOCIO' },
+    daviplata: { 
+      activo: true, 
+      tipoIntegracion: 'manual',
+      celular: '3001234567', 
+      titular: 'NOMBRE NEGOCIO',
+      apiKey: '',
+      clientId: '',
+      clientSecret: '',
+      idComercio: '3001234567',
+      entorno: 'sandbox',
+      tipoCobro: 'ambos'
+    },
     bancolombia: { activo: true, tipoCuenta: 'Ahorros', numeroCuenta: '000-000000-00', titular: 'NOMBRE NEGOCIO' },
     efectivo: { activo: true, solicitarCambio: true },
     redeban: { activo: false, merchantId: '', terminalId: '', apiKey: '', entorno: 'sandbox' },

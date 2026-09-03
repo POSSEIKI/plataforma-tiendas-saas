@@ -338,16 +338,42 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 )}
 
                 {metodoPago === 'daviplata' && store.pagos?.daviplata && (
-                  <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-xs space-y-1">
-                    <p className="font-bold text-rose-900 dark:text-rose-200">
-                      Transferir a Daviplata: <strong>{store.pagos.daviplata.celular}</strong>
-                    </p>
-                    <p className="text-rose-700 dark:text-rose-300">
-                      Titular: {store.pagos.daviplata.titular}
-                    </p>
-                    <p className="text-[10px] text-slate-400 pt-1">
-                      Podrás enviar el comprobante directamente por WhatsApp tras confirmar.
-                    </p>
+                  <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-xs space-y-2">
+                    {store.pagos.daviplata.tipoIntegracion === 'api' ? (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <span className="font-extrabold text-rose-950 dark:text-rose-200 flex items-center gap-1.5">
+                            <span>⚡ Pago Automático con API Daviplata</span>
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-rose-200 dark:bg-rose-900 text-rose-900 dark:text-rose-200 uppercase">
+                            {store.pagos.daviplata.entorno === 'produccion' ? 'En Vivo' : 'Sandbox'}
+                          </span>
+                        </div>
+                        <p className="text-rose-800 dark:text-rose-300 text-[11px] leading-relaxed">
+                          Al confirmar tu pedido, {store.pagos.daviplata.tipoCobro === 'qr_dinamico' 
+                            ? 'se generará tu código QR dinámico de Daviplata con el monto exacto para pagar.'
+                            : 'recibirás una notificación Push en tu celular para aprobar el pago directamente en tu App Daviplata.'}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="font-bold text-rose-900 dark:text-rose-200">
+                          Transferir a Daviplata: <strong>{store.pagos.daviplata.celular}</strong>
+                        </p>
+                        <p className="text-rose-700 dark:text-rose-300">
+                          Titular: {store.pagos.daviplata.titular}
+                        </p>
+                        {store.pagos.daviplata.qrUrl && (
+                          <div className="pt-2 flex items-center gap-3">
+                            <img src={store.pagos.daviplata.qrUrl} alt="QR Daviplata" className="w-20 h-20 rounded-xl border border-rose-200 dark:border-rose-700 object-contain bg-white p-1" />
+                            <span className="text-[10px] text-rose-600 dark:text-rose-300">Escanea el código QR desde tu App Daviplata</span>
+                          </div>
+                        )}
+                        <p className="text-[10px] text-slate-400 pt-1">
+                          Podrás enviar el comprobante directamente por WhatsApp tras confirmar.
+                        </p>
+                      </>
+                    )}
                   </div>
                 )}
 
