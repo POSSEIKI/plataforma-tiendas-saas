@@ -79,6 +79,8 @@ export const InventarioView: React.FC = () => {
 
   // Low stock and out of stock items
   const outOfStockItems = products.filter(p => p.stock <= 2);
+  const conStockCount = products.filter(p => p.stock > 0).length;
+  const sinStockCount = products.filter(p => p.stock <= 0).length;
 
   // Filtered & sorted products
   const filteredProducts = products
@@ -769,21 +771,99 @@ export const InventarioView: React.FC = () => {
           </div>
         </div>
       ) : (
-        /* Products Table */
         <div className="space-y-3">
           {/* Search bar & filter pills */}
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none shadow-sm"
-              placeholder="Buscar producto por nombre, marca, código o categoría..."
-            />
+          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none shadow-sm"
+                placeholder="Buscar producto por nombre, principio activo, marca o código..."
+              />
+            </div>
+
+            {/* Filter Pills Selector (Todos / Con Stock / Sin Stock) */}
+            <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 shadow-inner flex-shrink-0 self-start md:self-auto overflow-x-auto max-w-full">
+              <button
+                type="button"
+                onClick={() => setStockFilter('todos')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                  stockFilter === 'todos'
+                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs font-black'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <span>📦 Todos</span>
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                  stockFilter === 'todos' ? 'bg-slate-200 dark:bg-slate-600 text-slate-900 dark:text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+                }`}>
+                  {products.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStockFilter('con_stock')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                  stockFilter === 'con_stock'
+                    ? 'bg-emerald-600 text-white shadow-xs font-black'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400'
+                }`}
+              >
+                <span>🟢 Con Stock</span>
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                  stockFilter === 'con_stock' ? 'bg-emerald-700 text-white' : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
+                }`}>
+                  {conStockCount}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStockFilter('sin_stock')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                  stockFilter === 'sin_stock'
+                    ? 'bg-rose-600 text-white shadow-xs font-black'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400'
+                }`}
+              >
+                <span>🔴 Sin Stock</span>
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                  stockFilter === 'sin_stock' ? 'bg-rose-700 text-white' : 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300'
+                }`}>
+                  {sinStockCount}
+                </span>
+              </button>
+            </div>
           </div>
 
-          <div className="space-y-2.5">
+          {filteredProducts.length === 0 ? (
+            <div className="p-8 sm:p-12 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3 animate-fadeIn">
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto shadow-inner">
+                <Package className="w-6 h-6" />
+              </div>
+              <p className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300">
+                {stockFilter === 'sin_stock'
+                  ? '¡Excelente! Todos tus productos tienen existencias en este momento.'
+                  : stockFilter === 'con_stock'
+                  ? 'No hay productos con existencias disponibles en esta vista.'
+                  : 'No se encontraron productos que coincidan con la búsqueda.'}
+              </p>
+              {(searchTerm || stockFilter !== 'todos') && (
+                <button
+                  type="button"
+                  onClick={() => { setSearchTerm(''); setStockFilter('todos'); }}
+                  className="px-4 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 font-bold text-xs hover:bg-emerald-100 transition cursor-pointer"
+                >
+                  Restablecer filtros y ver todos los productos
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2.5">
             {paginatedProducts.map(prod => {
               const cajaSize = prod.contenidoCaja || 24;
               const blisterSize = prod.contenidoBlister || 6;
@@ -908,7 +988,8 @@ export const InventarioView: React.FC = () => {
               </div>
             );
           })}
-          </div>
+        </div>
+      )}
 
           {/* Pagination Controls Footer */}
           {filteredProducts.length > 0 && (
