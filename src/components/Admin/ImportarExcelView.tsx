@@ -24,7 +24,9 @@ export const ImportarExcelView: React.FC = () => {
     store, 
     exportFullBackupJSON, 
     importFullBackupJSON,
-    resetToCleanState
+    resetToCleanState,
+    setActiveView,
+    setActiveAdminTab
   } = useStore();
 
   const [dragActive, setDragActive] = useState(false);
@@ -170,13 +172,34 @@ export const ImportarExcelView: React.FC = () => {
 
       {/* Notification */}
       {statusMessage && (
-        <div className={`p-4 rounded-2xl flex items-center gap-3 text-xs sm:text-sm font-bold ${
+        <div className={`p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm font-bold ${
           statusMessage.type === 'success'
             ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
             : 'bg-rose-50 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
         }`}>
-          {statusMessage.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-          <span>{statusMessage.text}</span>
+          <div className="flex items-center gap-3">
+            {statusMessage.type === 'success' ? <CheckCircle2 className="w-5 h-5 flex-shrink-0" /> : <AlertCircle className="w-5 h-5 flex-shrink-0" />}
+            <span>{statusMessage.text}</span>
+          </div>
+
+          {statusMessage.type === 'success' && (
+            <div className="flex items-center gap-2 pt-1 sm:pt-0">
+              <button
+                type="button"
+                onClick={() => setActiveAdminTab('inventario')}
+                className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-sm transition cursor-pointer"
+              >
+                👁️ Ver en Inventario
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveView('storefront')}
+                className="px-3 py-1.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-extrabold shadow-sm transition hover:opacity-90 cursor-pointer"
+              >
+                🌐 Ver en Tienda Web
+              </button>
+            </div>
+          )}
         </div>
       )}
 

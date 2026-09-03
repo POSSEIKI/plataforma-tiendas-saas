@@ -219,13 +219,26 @@ export const StorefrontView: React.FC = () => {
   // Filtered Products
   const getCategoryProducts = (catId: string) => {
     return products.filter(p => {
-      if (!p.activo && !store.visibilidadStock.mostrarAgotados) return false;
+      if (p.activo === false && !store.visibilidadStock.mostrarAgotados) return false;
       const parentCat = categories.find(c => c.id === p.categoriaId);
       if (parentCat && parentCat.activo === false) return false;
 
-      const matchCat = catId === 'todos' || p.categoriaId === catId;
-      const matchSearch = p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.descripcion && p.descripcion.toLowerCase().includes(searchTerm.toLowerCase()));
+      let matchCat = false;
+      if (catId === 'todos') {
+        matchCat = true;
+      } else if (p.categoriaId === catId) {
+        matchCat = true;
+      } else if (parentCat && parentCat.id === catId) {
+        matchCat = true;
+      }
+
+      const term = searchTerm.toLowerCase().trim();
+      const matchSearch = !term ||
+        p.nombre.toLowerCase().includes(term) ||
+        (p.descripcion && p.descripcion.toLowerCase().includes(term)) ||
+        (p.principioActivo && p.principioActivo.toLowerCase().includes(term)) ||
+        (p.laboratorio && p.laboratorio.toLowerCase().includes(term));
+
       return matchCat && matchSearch;
     });
   };
@@ -713,10 +726,12 @@ export const StorefrontView: React.FC = () => {
           /* Rendered Catalog by Category or Filter */
           <section className="space-y-8">
             {selectedCategory === 'todos' ? (
-              activeCategories.length > 0 ? (
-                activeCategories.map(cat => {
+              (() => {
+                const renderedProductIds = new Set<string>();
+                const categorySections = activeCategories.map(cat => {
                   const catProds = getCategoryProducts(cat.id);
                   if (catProds.length === 0) return null;
+                  catProds.forEach(p => renderedProductIds.add(p.id));
                   return (
                     <section key={cat.id} className="space-y-4">
                       <div className={`flex items-center justify-between pb-2 border-b-2 ${isZenTemplate ? 'border-[#c67139]' : 'border-slate-900 dark:border-slate-100'}`}>
@@ -740,19 +755,39 @@ export const StorefrontView: React.FC = () => {
                       </div>
                     </section>
                   );
-                })
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {getCategoryProducts('todos').map(prod => (
-                    <ProductCard
-                      key={prod.id}
-                      product={prod}
-                      onAddToCart={handleAddToCart}
-                      onQuickView={setQuickViewProduct}
-                    />
-                  ))}
-                </div>
-              )
+                }).filter(Boolean);
+
+                const remainingProds = getCategoryProducts('todos').filter(p => !renderedProductIds.has(p.id));
+
+                return (
+                  <>
+                    {categorySections}
+                    {remainingProds.length > 0 && (
+                      <section className="space-y-4">
+                        <div className={`flex items-center justify-between pb-2 border-b-2 ${isZenTemplate ? 'border-[#c67139]' : 'border-slate-900 dark:border-slate-100'}`}>
+                          <div className="flex items-center gap-2">
+                            <h3 className={`text-base font-black uppercase tracking-tight ${isZenTemplate ? 'text-[#201e1d] dark:text-[#f5ead8] font-figtree' : 'text-slate-950 dark:text-white'}`}>
+                              {categorySections.length > 0 ? 'Más Productos' : 'Catálogo General'}
+                            </h3>
+                            <span className={`text-xs font-semibold ${isZenTemplate ? 'text-[#7a8a5e] dark:text-[#adc08f]' : 'text-slate-400'}`}>{remainingProds.length} productos</span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                          {remainingProds.map(prod => (
+                            <ProductCard
+                              key={prod.id}
+                              product={prod}
+                              onAddToCart={handleAddToCart}
+                              onQuickView={setQuickViewProduct}
+                            />
+                          ))}
+                        </div>
+                      </section>
+                    )}
+                  </>
+                );
+              })()
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {getCategoryProducts(selectedCategory).map(prod => (

@@ -629,7 +629,7 @@ export class ExcelReader {
     const categories: Category[] = [];
 
     parsedItems.forEach(item => {
-      const catName = item.categoria;
+      const catName = item.categoria || 'GENERAL';
       if (!categoryMap.has(catName)) {
         const catId = 'cat-' + catName.toLowerCase().replace(/[^a-z0-9]/g, '-');
         categoryMap.set(catName, catId);
@@ -637,6 +637,7 @@ export class ExcelReader {
           id: catId,
           nombre: catName,
           icono: 'Tag',
+          activo: true,
         });
       }
     });
@@ -653,7 +654,7 @@ export class ExcelReader {
       categoriaId: categoryMap.get(item.categoria) || 'cat-general',
       presentacion: item.presentacion,
       imagenUrl: item.imagenUrl || 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=300&q=80',
-      activo: item.tiene_inventario,
+      activo: true,
       // 🔹 Fractionated Inventory Fields
       manejaFracciones: item.maneja_fracciones,
       contenidoCaja: item.contenido_caja || 24,

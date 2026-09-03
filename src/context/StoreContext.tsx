@@ -630,12 +630,50 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const bulkImportCatalog = (newProducts: Product[], newCategories: Category[]) => {
     updateCurrentTenant(prev => {
-      const existingNames = new Set(prev.categories.map(c => c.nombre.toUpperCase()));
-      const toAdd = newCategories.filter(c => !existingNames.has(c.nombre.toUpperCase()));
+      // Index existing categories by uppercase name
+      const nameToExistingCat = new Map<string, Category>();
+      prev.categories.forEach(c => {
+        nameToExistingCat.set(c.nombre.toUpperCase().trim(), c);
+      });
+
+      const categoriesToAdd: Category[] = [];
+      const categoryIdMapping = new Map<string, string>(); // newCatId -> targetCatId
+
+      newCategories.forEach(newCat => {
+        const upper = newCat.nombre.toUpperCase().trim();
+        const existing = nameToExistingCat.get(upper);
+        if (existing) {
+          categoryIdMapping.set(newCat.id, existing.id);
+        } else {
+          const freshCat: Category = {
+            id: newCat.id,
+            nombre: newCat.nombre,
+            icono: newCat.icono || 'Tag',
+            activo: true,
+          };
+          categoriesToAdd.push(freshCat);
+          nameToExistingCat.set(upper, freshCat);
+          categoryIdMapping.set(newCat.id, freshCat.id);
+        }
+      });
+
+      // Ensure every product points to an existing or newly added category ID and is activo
+      const finalProducts = newProducts.map(p => ({
+        ...p,
+        categoriaId: categoryIdMapping.get(p.categoriaId) || p.categoriaId,
+        activo: true,
+      }));
+
+      // Combine categories ensuring all are activo: true
+      const finalCategories = [...prev.categories, ...categoriesToAdd].map(c => ({
+        ...c,
+        activo: c.activo !== false,
+      }));
+
       return {
         ...prev,
-        products: newProducts,
-        categories: [...prev.categories, ...toAdd],
+        products: finalProducts,
+        categories: finalCategories,
       };
     });
   };
