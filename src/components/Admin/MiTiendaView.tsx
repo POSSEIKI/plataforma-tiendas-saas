@@ -20,7 +20,10 @@ import {
   EyeOff,
   Lock,
   ShieldAlert,
-  UserCheck
+  UserCheck,
+  Download,
+  FileJson,
+  RefreshCw
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { InteractiveMap } from '../Common/InteractiveMap';
@@ -31,11 +34,22 @@ import { RubroType } from '../../types';
 import { StoreQRSection } from './StoreQRSection';
 
 export const MiTiendaView: React.FC = () => {
-  const { store, updateStore, setActiveAdminTab, currentUser, updateAccountSecurity } = useStore();
+  const { 
+    store, 
+    updateStore, 
+    setActiveAdminTab, 
+    currentUser, 
+    updateAccountSecurity,
+    exportFullBackupJSON,
+    importFullBackupJSON
+  } = useStore();
 
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const [isNomenclaturaOpen, setIsNomenclaturaOpen] = useState(false);
   const [isSecurityOpen, setIsSecurityOpen] = useState(false);
+  const [isBackupOpen, setIsBackupOpen] = useState(false);
+  const [backupMessage, setBackupMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const [adminPassInput, setAdminPassInput] = useState(currentUser?.passwordHash || 'Ancee674');
   const [sellerPassInput, setSellerPassInput] = useState(store.claveVendedor || currentUser?.vendedorPasswordHash || 'Ventas123');
@@ -905,6 +919,119 @@ export const MiTiendaView: React.FC = () => {
                 </button>
               </div>
 
+            </div>
+          )}
+        </div>
+
+        {/* Accordion 4: Respaldo y Sincronización Local <-> Web */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+          <button
+            type="button"
+            onClick={() => setIsBackupOpen(!isBackupOpen)}
+            className="w-full p-4 sm:p-5 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition cursor-pointer"
+          >
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0">
+                <RefreshCw className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white flex items-center gap-2">
+                  <span>Copia de Respaldo & Sincronización (Local ↔ Web)</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
+                    1 Clic
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Descarga tus productos y configuración de tu PC para subirlos a la web pública al instante
+                </p>
+              </div>
+            </div>
+            <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${isBackupOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {isBackupOpen && (
+            <div className="p-4 sm:p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 space-y-4">
+              {backupMessage && (
+                <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
+                  backupMessage.type === 'success' 
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800' 
+                    : 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
+                }`}>
+                  <span>{backupMessage.text}</span>
+                </div>
+              )}
+
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                Usa esta herramienta para transferir <strong>todo tu catálogo, inventario, categorías, banners, métodos de pago y dirección</strong> desde tu versión local en tu computadora hacia la página web en internet sin tener que volver a configurar nada.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                {/* Export Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const jsonStr = exportFullBackupJSON();
+                    const blob = new Blob([jsonStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `respaldo_tienda_${store.slug || 'mitienda'}_${new Date().toISOString().slice(0,10)}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    setBackupMessage({ type: 'success', text: '¡Archivo de respaldo descargado exitosamente! Ahora puedes abrir tu página en la web y cargarlo con el botón verde.' });
+                  }}
+                  className="p-4 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 text-indigo-900 dark:text-indigo-200 flex items-center gap-3 transition shadow-sm cursor-pointer"
+                >
+                  <div className="p-2.5 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400">
+                    <Download className="w-5 h-5" />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xs font-extrabold">1. Descargar Respaldo (.json)</div>
+                    <div className="text-[10px] text-slate-400">Guarda todo el inventario y datos actuales</div>
+                  </div>
+                </button>
+
+                {/* Import Button */}
+                <div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept=".json"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = (event) => {
+                        const content = event.target?.result as string;
+                        if (content) {
+                          const ok = importFullBackupJSON(content);
+                          if (ok) {
+                            setBackupMessage({ type: 'success', text: '¡Respaldo cargado con éxito! Tu tienda web ahora tiene todos los datos actualizados.' });
+                          } else {
+                            setBackupMessage({ type: 'error', text: 'El archivo no tiene un formato válido de respaldo de tienda.' });
+                          }
+                        }
+                      };
+                      reader.readAsText(file);
+                      if (e.target) e.target.value = '';
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full p-4 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200 flex items-center gap-3 transition shadow-sm cursor-pointer"
+                  >
+                    <div className="p-2.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400">
+                      <Upload className="w-5 h-5" />
+                    </div>
+                    <div className="text-left">
+                      <div className="text-xs font-extrabold">2. Cargar Respaldo en la Web</div>
+                      <div className="text-[10px] text-slate-400">Restaura productos, categorías y ajustes</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>
